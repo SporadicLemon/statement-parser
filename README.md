@@ -34,7 +34,7 @@ Then add the dependency:
 
 ```kotlin
 dependencies {
-    implementation("io.github.sporadiclemon:statement-parser:0.1.0")
+    implementation("io.github.sporadiclemon:statement-parser:0.0.1")
 }
 ```
 

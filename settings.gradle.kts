@@ -1,5 +1,7 @@
 rootProject.name = "statement-parser"
 
+include(":test-app")
+
 pluginManagement {
     repositories {
         google()
