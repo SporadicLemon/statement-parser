@@ -1,0 +1,29 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+*.hprof
+.kotlin
+
+# App signing files
+*.jks
+*.keystore
+*.p12
+
+# Google Services
+google-services.json
+
+# Lint
+lint/intermediate/
+lint/generated/
+lint/reports/
