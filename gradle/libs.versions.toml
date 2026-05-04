@@ -1,0 +1,19 @@
+[versions]
+agp = "8.7.3"
+kotlin = "2.3.20"
+kotlinxDatetime = "0.7.1"
+kotlinxCoroutines = "1.10.2"
+datastore = "1.2.1"
+mavenPublish = "0.30.0"
+
+[libraries]
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+datastore-preferences-core = { group = "androidx.datastore", name = "datastore-preferences-core", version.ref = "datastore" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+
+[plugins]
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
