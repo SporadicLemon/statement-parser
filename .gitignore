@@ -1,6 +1,7 @@
 *.iml
 .gradle
 /local.properties
+/.idea/
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -27,3 +28,11 @@ google-services.json
 lint/intermediate/
 lint/generated/
 lint/reports/
+/.idea/AndroidProjectSystem.xml
+/.idea/compiler.xml
+/.idea/gradle.xml
+/.idea/runConfigurations.xml
+/.idea/markdown.xml
+/.idea/misc.xml
+/.idea/artifacts/statement_parser_jvm_0_1_0.xml
+/.idea/vcs.xml
