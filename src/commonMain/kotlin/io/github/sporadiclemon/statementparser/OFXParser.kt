@@ -40,7 +40,7 @@ class OFXParser {
         if (cleaned.length < 8) return null
         LocalDate(
             year = cleaned.substring(0, 4).toInt(),
-            monthNumber = cleaned.substring(4, 6).toInt(),
+            month = kotlinx.datetime.Month(cleaned.substring(4, 6).toInt()),
             dayOfMonth = cleaned.substring(6, 8).toInt(),
         )
     } catch (_: Exception) { null }
@@ -61,7 +61,7 @@ class OFXParser {
         // but can be just a start tag in older OFX.
         // We'll support both.
         
-        val xmlMatches = Regex("<$tag>(.*?)</$tag>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val xmlMatches = Regex("<$tag>([\\s\\S]*?)</$tag>", RegexOption.IGNORE_CASE)
             .findAll(content).map { it.groupValues[1] }.toList()
             
         if (xmlMatches.isNotEmpty()) return xmlMatches
