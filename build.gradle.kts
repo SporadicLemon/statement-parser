@@ -1,5 +1,3 @@
-import com.vanniktech.maven.publish.SonatypeHost
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
@@ -48,8 +46,10 @@ android {
 }
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
-    signAllPublications()
+    if (providers.gradleProperty("signingKey").isPresent ||
+        System.getenv("ORG_GRADLE_PROJECT_signingKey") != null) {
+        signAllPublications()
+    }
     // Removed coordinates() call to avoid "final and cannot be changed" error
     pom {
         name.set("statement-parser")
