@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "io.github.sporadiclemon"
-version = providers.gradleProperty("VERSION_NAME").get()
+version = libs.versions.statementParser.get()
 
 kotlin {
     jvmToolchain(17)
