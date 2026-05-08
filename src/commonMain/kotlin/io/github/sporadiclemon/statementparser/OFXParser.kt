@@ -35,15 +35,17 @@ class OFXParser {
         return ParsedTransaction(date = date, amount = amount, description = description.trim(), raw = block)
     }
 
-    private fun parseOfxDate(dateStr: String): LocalDate? = try {
-        val cleaned = dateStr.trim().take(8)
-        if (cleaned.length < 8) return null
-        LocalDate(
-            year = cleaned.substring(0, 4).toInt(),
-            month = kotlinx.datetime.Month(cleaned.substring(4, 6).toInt()),
-            dayOfMonth = cleaned.substring(6, 8).toInt(),
-        )
-    } catch (_: Exception) { null }
+    private fun parseOfxDate(dateStr: String): LocalDate? {
+        return try {
+            val cleaned = dateStr.trim().take(8)
+            if (cleaned.length < 8) return null
+            LocalDate(
+                year = cleaned.substring(0, 4).toInt(),
+                month = kotlinx.datetime.Month(cleaned.substring(4, 6).toInt()),
+                day = cleaned.substring(6, 8).toInt(),
+            )
+        } catch (_: Exception) { null }
+    }
 
     private fun extractTag(content: String, tag: String): String? {
         // Handle both <TAG>value</TAG> and <TAG>value (SGML-style)
