@@ -9,7 +9,7 @@ data class ColumnMapping(
     val descriptionIndex: Int,
 )
 
-data class BankProfile(
+data class CsvBankProfile(
     val name: String,
     val headerSignature: Set<String>,
     val mapping: ColumnMapping,

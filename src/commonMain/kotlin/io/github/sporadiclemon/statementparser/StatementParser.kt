@@ -10,9 +10,9 @@ class StatementParser {
     fun detectFormat(fileName: String, content: String): StatementFormat =
         formatDetector.detect(fileName, content)
 
-    fun detectBank(headers: List<String>): BankProfile? {
+    fun detectBank(headers: List<String>): CsvBankProfile? {
         val headerSet = headers.map { it.trim().lowercase() }.toSet()
-        return BankProfiles.all.firstOrNull { profile ->
+        return CsvBankProfiles.all.firstOrNull { profile ->
             profile.headerSignature.all { sig -> headerSet.contains(sig.lowercase()) }
         }
     }

@@ -27,7 +27,7 @@ class CsvParserTest {
 
     @Test
     fun `parses Monzo money-out row`() {
-        val monzoMapping = BankProfiles.all.first { it.name == "Monzo" }.mapping
+        val monzoMapping = CsvBankProfiles.all.first { it.name == "Monzo" }.mapping
         // Monzo headers (18 cols): Transaction ID,Date,Time,Type,Name,Emoji,Category,Amount,Currency,Local amount,Local currency,Notes and #tags,Address,Receipt,Description,Category split,Money Out,Money In
         val row = "tx_001,15/01/2024,12:00:00,Payment,Tesco,,Groceries,-4.50,GBP,-4.50,GBP,,,,,, 4.50,"
         val result = parser.parse("header\n$row", monzoMapping).getOrThrow()
@@ -39,7 +39,7 @@ class CsvParserTest {
 
     @Test
     fun `parses Monzo money-in row`() {
-        val monzoMapping = BankProfiles.all.first { it.name == "Monzo" }.mapping
+        val monzoMapping = CsvBankProfiles.all.first { it.name == "Monzo" }.mapping
         val row = "tx_002,20/01/2024,09:00:00,Income,Employer,,Income,1500.00,GBP,1500.00,GBP,,,,,,, 1500.00"
         val result = parser.parse("header\n$row", monzoMapping).getOrThrow()
         assertEquals(1500.00, result[0].amount)
@@ -49,7 +49,7 @@ class CsvParserTest {
 
     @Test
     fun `parses Starling debit row`() {
-        val mapping = BankProfiles.all.first { it.name == "Starling" }.mapping
+        val mapping = CsvBankProfiles.all.first { it.name == "Starling" }.mapping
         // Starling headers: Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category
         val row = "15/01/2024,Tesco,,FASTER_PAYMENT,-4.50,295.50,GROCERIES"
         val result = parser.parse("header\n$row", mapping).getOrThrow()
@@ -62,7 +62,7 @@ class CsvParserTest {
 
     @Test
     fun `parses Lloyds debit row`() {
-        val mapping = BankProfiles.all.first { it.name == "Lloyds" }.mapping
+        val mapping = CsvBankProfiles.all.first { it.name == "Lloyds" }.mapping
         // Lloyds headers: Transaction Date,Transaction Type,Sort Code,Account Number,Transaction Description,Debit Amount,Credit Amount,Balance
         val row = "15/01/2024,DEB,12-34-56,12345678,Tesco,4.50,,295.50"
         val result = parser.parse("header\n$row", mapping).getOrThrow()
@@ -73,7 +73,7 @@ class CsvParserTest {
 
     @Test
     fun `parses Lloyds credit row`() {
-        val mapping = BankProfiles.all.first { it.name == "Lloyds" }.mapping
+        val mapping = CsvBankProfiles.all.first { it.name == "Lloyds" }.mapping
         val row = "20/01/2024,CR,12-34-56,12345678,Salary,,1500.00,1795.50"
         val result = parser.parse("header\n$row", mapping).getOrThrow()
         assertEquals(1500.00, result[0].amount)
