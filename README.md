@@ -51,6 +51,53 @@ result.transactions.forEach {
 }
 ```
 
+## PDF Parsing
+
+```kotlin
+val parser = StatementParser()
+
+// Detect by filename
+val format = parser.detectFormat("statement.pdf", "")
+// format == StatementFormat.PDF
+
+// Parse a PDF statement
+val bytes = file.readBytes()
+val result = parser.parsePdf(bytes)                          // auto-detects bank
+val result = parser.parsePdf(bytes, bankHint = "Monzo")     // skip auto-detection
+
+result.getOrThrow().transactions.forEach {
+    println("${it.date}: ${it.description} (${it.amount})")
+}
+```
+
+### Supported PDF Banks
+
+| Bank     | Detection            |
+|----------|----------------------|
+| Monzo    | "Monzo Bank" in text |
+| Starling | "Starling Bank"      |
+| HSBC     | "HSBC"               |
+| Lloyds   | "Lloyds Bank"        |
+
+### Android Setup
+
+PdfBox-Android requires one-time initialisation. In your `Application` class:
+
+```kotlin
+override fun onCreate() {
+    super.onCreate()
+    PDFBoxResourceLoader.init(applicationContext)
+}
+```
+
+### Platform Support
+
+| Platform | PDF Support |
+|----------|------------|
+| Android  | ✓ (PdfBox-Android) |
+| iOS      | ✓ (PDFKit, iOS 11+) |
+| JVM      | Not yet supported |
+
 ## License
 
 Apache License 2.0
