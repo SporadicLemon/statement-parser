@@ -24,13 +24,13 @@ internal class PdfParser(
             val profile =
                 resolveProfile(text, bankHint)
                     ?: throw IllegalArgumentException(
-                        "No PDF bank profile matched. Supported banks: ${profiles.joinToString { it.name }}",
+                        "No PDF bank profile matched. Supported banks: ${profiles.joinToString { it.bank.displayName }}",
                     )
             val transactions = extractTransactions(text, profile)
             ParsedStatement(
                 transactions = transactions,
                 accountInfoResult = AccountInfoResult.NotAvailable(AccountInfoUnavailableReason.MissingFromFile),
-                detectedBank = null,
+                detectedBank = profile.bank,
                 suggestedMapping = null,
                 rawHeaders = null,
             )
@@ -41,7 +41,7 @@ internal class PdfParser(
         bankHint: String?,
     ): PdfBankProfile? =
         if (bankHint != null) {
-            profiles.firstOrNull { it.name.equals(bankHint, ignoreCase = true) }
+            profiles.firstOrNull { it.bank.displayName.equals(bankHint, ignoreCase = true) }
         } else {
             profiles.firstOrNull { it.bankNamePattern.containsMatchIn(text) }
         }

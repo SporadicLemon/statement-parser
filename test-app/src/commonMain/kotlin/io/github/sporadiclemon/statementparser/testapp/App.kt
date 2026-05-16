@@ -114,7 +114,7 @@ fun App() {
 
                     result?.let { res ->
                         res.onSuccess { statement ->
-                            SummarySection(fileName, detectedFormat, statement.transactions.size, statement.detectedBank?.name)
+                            SummarySection(fileName, detectedFormat, statement.transactions.size, statement.detectedBank?.displayName)
                             Spacer(modifier = Modifier.height(16.dp))
                             TransactionList(statement)
                         }.onFailure {

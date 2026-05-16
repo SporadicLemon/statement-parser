@@ -1,7 +1,7 @@
 package io.github.sporadiclemon.statementparser
 
 data class PdfBankProfile(
-    val name: String,
+    val bank: Bank,
     val bankNamePattern: Regex,
     val transactionLinePattern: Regex,
     val dateGroup: Int,
@@ -16,7 +16,7 @@ object PdfBankProfiles {
     val all: List<PdfBankProfile> =
         listOf(
             PdfBankProfile(
-                name = "Monzo",
+                bank = Bank.MONZO,
                 bankNamePattern = Regex("Monzo Bank", RegexOption.IGNORE_CASE),
                 transactionLinePattern =
                     Regex(
@@ -31,7 +31,7 @@ object PdfBankProfiles {
                 dateFormat = "dd MMM yyyy",
             ),
             PdfBankProfile(
-                name = "Starling",
+                bank = Bank.STARLING,
                 bankNamePattern = Regex("Starling Bank", RegexOption.IGNORE_CASE),
                 transactionLinePattern =
                     Regex(
@@ -46,7 +46,7 @@ object PdfBankProfiles {
                 dateFormat = "dd/MM/yyyy",
             ),
             PdfBankProfile(
-                name = "HSBC",
+                bank = Bank.HSBC,
                 bankNamePattern = Regex("HSBC", RegexOption.IGNORE_CASE),
                 transactionLinePattern =
                     Regex(
@@ -61,7 +61,7 @@ object PdfBankProfiles {
                 dateFormat = "dd MMM yy",
             ),
             PdfBankProfile(
-                name = "Lloyds",
+                bank = Bank.LLOYDS,
                 bankNamePattern = Regex("Lloyds Bank", RegexOption.IGNORE_CASE),
                 transactionLinePattern =
                     Regex(
@@ -78,7 +78,7 @@ object PdfBankProfiles {
             // NatWest: captures the first amount after the description (debit or credit).
             // Sign direction requires real PDF validation — update in Task 7.
             PdfBankProfile(
-                name = "NatWest",
+                bank = Bank.NATWEST,
                 bankNamePattern = Regex("NatWest", RegexOption.IGNORE_CASE),
                 transactionLinePattern =
                     Regex(

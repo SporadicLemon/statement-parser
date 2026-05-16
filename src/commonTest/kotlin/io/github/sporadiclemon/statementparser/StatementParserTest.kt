@@ -41,7 +41,7 @@ class StatementParserTest {
             "Amount", "Currency", "Local amount", "Local currency", "Notes and #tags",
             "Address", "Receipt", "Description", "Category split", "Money Out", "Money In")
         val profile = parser.detectBank(headers)
-        assertEquals("Monzo", profile?.name)
+        assertEquals(Bank.MONZO, profile?.bank)
     }
 
     @Test
@@ -64,7 +64,7 @@ class StatementParserTest {
                   "15/01/2024,Tesco,,FASTER_PAYMENT,-4.50,295.50,GROCERIES"
         val result = parser.parse(csv, StatementFormat.CSV).getOrThrow()
         assertEquals(1, result.transactions.size)
-        assertEquals("Starling", result.detectedBank?.name)
+        assertEquals(Bank.STARLING, result.detectedBank)
         assertIs<AccountInfoResult.NotAvailable>(result.accountInfoResult)
         assertEquals(AccountInfoUnavailableReason.CsvFormat,
             (result.accountInfoResult as AccountInfoResult.NotAvailable).reason)

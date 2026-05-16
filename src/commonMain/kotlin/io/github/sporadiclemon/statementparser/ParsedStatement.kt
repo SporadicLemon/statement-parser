@@ -5,7 +5,7 @@ import kotlinx.datetime.LocalDate
 data class ParsedStatement(
     val transactions: List<ParsedTransaction>,
     val accountInfoResult: AccountInfoResult,
-    val detectedBank: CsvBankProfile?,
+    val detectedBank: Bank?,
     val suggestedMapping: ColumnMapping?,
     val rawHeaders: List<String>?,
 )

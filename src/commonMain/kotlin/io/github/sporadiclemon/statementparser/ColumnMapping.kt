@@ -10,7 +10,7 @@ data class ColumnMapping(
 )
 
 data class CsvBankProfile(
-    val name: String,
+    val bank: Bank,
     val headerSignature: Set<String>,
     val mapping: ColumnMapping,
 )

@@ -133,7 +133,7 @@ class PdfParserTest {
 
     @Test fun `parses split amountInGroup and amountOutGroup columns`() {
         val splitProfile = PdfBankProfile(
-            name = "SplitBank",
+            bank = Bank.MONZO,
             bankNamePattern = Regex("SplitBank"),
             // group 3 = out (debit, optional), group 4 = in (credit, optional)
             // Fixed-width columns: each amount field is exactly 10 chars wide.
@@ -151,8 +151,8 @@ class PdfParserTest {
         val parserWithSplitProfile = PdfParser(listOf(splitProfile))
         // Debit row: out column populated, in column empty
         // Credit row: out column empty, in column populated
-        val text = "15/01/2024  Tesco  4.50          \n20/01/2024  Salary            1500.00"
-        val result = parserWithSplitProfile.parseText(text, "SplitBank").getOrThrow()
+        val text = "SplitBank\n15/01/2024  Tesco  4.50          \n20/01/2024  Salary            1500.00"
+        val result = parserWithSplitProfile.parseText(text, null).getOrThrow()
         assertEquals(2, result.transactions.size)
         assertEquals(-4.50, result.transactions[0].amount)
         assertEquals(1500.00, result.transactions[1].amount)
