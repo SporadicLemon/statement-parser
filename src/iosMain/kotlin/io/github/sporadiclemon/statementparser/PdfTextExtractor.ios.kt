@@ -20,6 +20,6 @@ actual class PdfTextExtractor actual constructor() {
                 append(page.string ?: "")
                 append("\n")
             }
-        }
+        }.trimEnd()
     }
 }
