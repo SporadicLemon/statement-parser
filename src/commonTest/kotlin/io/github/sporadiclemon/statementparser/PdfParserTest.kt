@@ -157,4 +157,24 @@ class PdfParserTest {
         assertEquals(-4.50, result.transactions[0].amount)
         assertEquals(1500.00, result.transactions[1].amount)
     }
+
+    // --- NatWest: first amount after description, dd MMM yyyy ---
+    // Sign direction is not yet determined without real PDF validation.
+
+    @Test fun `parses NatWest extracted text capturing first amount after description`() {
+        val text = """
+            NatWest
+            Account Statement
+
+            15 Jan 2024  TESCO STORES 1234              4.50              1,195.50
+            20 Jan 2024  BACS CREDIT SALARY                       2,500.00  3,695.50
+        """.trimIndent()
+        val result = parser.parseText(text, "NatWest").getOrThrow()
+        assertEquals(2, result.transactions.size)
+        assertEquals(LocalDate(2024, 1, 15), result.transactions[0].date)
+        assertEquals(4.50, result.transactions[0].amount)
+        assertEquals("TESCO STORES 1234", result.transactions[0].description)
+        assertEquals(LocalDate(2024, 1, 20), result.transactions[1].date)
+        assertEquals(2500.00, result.transactions[1].amount)
+    }
 }

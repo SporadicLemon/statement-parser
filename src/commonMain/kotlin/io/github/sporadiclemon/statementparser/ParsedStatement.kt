@@ -18,14 +18,29 @@ data class ParsedTransaction(
 )
 
 sealed class AccountInfoResult {
-    data class Found(val info: ParsedAccountInfo) : AccountInfoResult()
-    data class NotAvailable(val reason: AccountInfoUnavailableReason) : AccountInfoResult()
+    data class Found(
+        val info: ParsedAccountInfo,
+    ) : AccountInfoResult()
+
+    data class NotAvailable(
+        val reason: AccountInfoUnavailableReason,
+    ) : AccountInfoResult()
 }
 
 enum class AccountInfoUnavailableReason { CsvFormat, MissingFromFile }
 
-data class ParsedAccountInfo(val institutionName: String?, val accountNumber: String?)
+data class ParsedAccountInfo(
+    val institutionName: String?,
+    val accountNumber: String?,
+)
 
-data class ExistingTransaction(val date: LocalDate, val amount: Double, val description: String)
+data class ExistingTransaction(
+    val date: LocalDate,
+    val amount: Double,
+    val description: String,
+)
 
-data class DuplicateCheckResult(val newTransactions: List<ParsedTransaction>, val duplicates: List<ParsedTransaction>)
+data class DuplicateCheckResult(
+    val newTransactions: List<ParsedTransaction>,
+    val duplicates: List<ParsedTransaction>,
+)

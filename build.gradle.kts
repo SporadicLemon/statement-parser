@@ -51,7 +51,8 @@ android {
 
 mavenPublishing {
     if (providers.gradleProperty("signingKey").isPresent ||
-        System.getenv("ORG_GRADLE_PROJECT_signingKey") != null) {
+        System.getenv("ORG_GRADLE_PROJECT_signingKey") != null
+    ) {
         signAllPublications()
     }
     // Removed coordinates() call to avoid "final and cannot be changed" error

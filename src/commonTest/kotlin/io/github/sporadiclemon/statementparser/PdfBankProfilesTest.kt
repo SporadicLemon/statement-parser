@@ -30,6 +30,12 @@ class PdfBankProfilesTest {
         assertEquals("Lloyds", profile?.name)
     }
 
+    @Test fun `resolves NatWest profile by bank name in text`() {
+        val text = "NatWest\nAccount Statement"
+        val profile = PdfBankProfiles.all.firstOrNull { it.bankNamePattern.containsMatchIn(text) }
+        assertEquals("NatWest", profile?.name)
+    }
+
     @Test fun `returns null for unrecognised bank text`() {
         val text = "Random Finance Co\nStatement"
         val profile = PdfBankProfiles.all.firstOrNull { it.bankNamePattern.containsMatchIn(text) }
