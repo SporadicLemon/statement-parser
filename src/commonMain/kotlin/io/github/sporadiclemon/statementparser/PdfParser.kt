@@ -7,8 +7,10 @@ internal class PdfParser(
 ) {
     private val extractor = PdfTextExtractor()
 
-    fun parse(bytes: ByteArray, bankHint: String? = null): Result<ParsedStatement> =
-        parseText(extractor.extractText(bytes), bankHint)
+    fun parse(bytes: ByteArray, bankHint: String? = null): Result<ParsedStatement> = runCatching {
+        val text = extractor.extractText(bytes)
+        parseText(text, bankHint).getOrThrow()
+    }
 
     internal fun parseText(text: String, bankHint: String?): Result<ParsedStatement> = runCatching {
         val profile = resolveProfile(text, bankHint)

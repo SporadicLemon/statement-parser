@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class StatementParserTest {
 
@@ -76,5 +77,13 @@ class StatementParserTest {
         val result = parser.parse(ofx, StatementFormat.OFX).getOrThrow()
         assertIs<AccountInfoResult.Found>(result.accountInfoResult)
         assertEquals(1, result.transactions.size)
+    }
+
+    // --- parsePdf ---
+
+    @Test
+    fun `parsePdf returns failure for empty bytes`() {
+        val result = parser.parsePdf(ByteArray(0), bankHint = "Monzo")
+        assertTrue(result.isFailure)
     }
 }

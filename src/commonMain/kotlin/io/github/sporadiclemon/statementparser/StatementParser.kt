@@ -5,6 +5,7 @@ class StatementParser {
     private val formatDetector = FormatDetector()
     private val csvParser = CsvParser()
     private val ofxParser = OFXParser()
+    private val pdfParser = PdfParser()
 
     fun detectFormat(fileName: String, content: String): StatementFormat =
         formatDetector.detect(fileName, content)
@@ -20,8 +21,13 @@ class StatementParser {
         when (format) {
             StatementFormat.OFX -> ofxParser.parse(content)
             StatementFormat.CSV -> parseCsv(content, mapping)
-            StatementFormat.PDF -> Result.failure(UnsupportedOperationException("PDF parsing not yet implemented"))
+            StatementFormat.PDF -> Result.failure(
+                IllegalArgumentException("Use parsePdf(bytes) for PDF format")
+            )
         }
+
+    fun parsePdf(bytes: ByteArray, bankHint: String? = null): Result<ParsedStatement> =
+        pdfParser.parse(bytes, bankHint)
 
     private fun parseCsv(content: String, suppliedMapping: ColumnMapping?): Result<ParsedStatement> = runCatching {
         val headers = csvParser.parseHeaders(content)
