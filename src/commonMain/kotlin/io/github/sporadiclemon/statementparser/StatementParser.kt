@@ -7,6 +7,11 @@ class StatementParser {
     private val ofxParser = OFXParser()
     private val pdfParser = PdfParser()
 
+    fun getProfiledBanks(): List<Bank> {
+        val profileNames = (CsvBankProfiles.all.map { it.name } + PdfBankProfiles.all.map { it.name }).toSet()
+        return Bank.entries.filter { it.displayName in profileNames }
+    }
+
     fun detectFormat(fileName: String, content: String): StatementFormat =
         formatDetector.detect(fileName, content)
 

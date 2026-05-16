@@ -11,6 +11,20 @@ class StatementParserTest {
 
     private val parser = StatementParser()
 
+    // --- getProfiledBanks ---
+
+    @Test
+    fun `getProfiledBanks returns all banks with at least one profile`() {
+        val banks = parser.getProfiledBanks()
+        assertTrue(banks.contains(Bank.MONZO))
+        assertTrue(banks.contains(Bank.STARLING))
+        assertTrue(banks.contains(Bank.BARCLAYS))
+        assertTrue(banks.contains(Bank.HSBC))
+        assertTrue(banks.contains(Bank.LLOYDS))
+        assertTrue(banks.contains(Bank.NATWEST))
+        assertTrue(banks.contains(Bank.SANTANDER))
+    }
+
     // --- detectFormat ---
 
     @Test
