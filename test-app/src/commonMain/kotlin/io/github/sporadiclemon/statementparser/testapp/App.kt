@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.sporadiclemon.statementparser.Bank
 import io.github.sporadiclemon.statementparser.ParsedStatement
 import io.github.sporadiclemon.statementparser.StatementFormat
 import io.github.sporadiclemon.statementparser.StatementParser
@@ -48,6 +49,7 @@ import io.github.sporadiclemon.statementparser.StatementParser
 fun App() {
     MaterialTheme(colors = lightColors()) {
         val parser = remember { StatementParser() }
+        val profiledBanks = remember { parser.getProfiledBanks() }
         var showFilePicker by remember { mutableStateOf(false) }
         var result by remember { mutableStateOf<Result<ParsedStatement>?>(null) }
         var fileName by remember { mutableStateOf("") }
@@ -63,7 +65,7 @@ fun App() {
                 result = if (format == StatementFormat.PDF) {
                     parser.parsePdf(bytes)
                 } else {
-                    parser.parse(bytes.toString(Charsets.UTF_8), format)
+                    parser.parse(bytes.decodeToString(), format)
                 }
             },
             onDismiss = { showFilePicker = false }
@@ -112,14 +114,14 @@ fun App() {
 
                     result?.let { res ->
                         res.onSuccess { statement ->
-                            SummarySection(fileName, detectedFormat, statement.transactions.size)
+                            SummarySection(fileName, detectedFormat, statement.transactions.size, statement.detectedBank?.name)
                             Spacer(modifier = Modifier.height(16.dp))
                             TransactionList(statement)
                         }.onFailure {
                             ErrorDisplay(it.message ?: "Unknown error occurred")
                         }
                     } ?: run {
-                        EmptyState()
+                        EmptyState(profiledBanks)
                     }
                 }
             }
@@ -128,7 +130,7 @@ fun App() {
 }
 
 @Composable
-fun SummarySection(name: String, format: StatementFormat?, count: Int) {
+fun SummarySection(name: String, format: StatementFormat?, count: Int, detectedBank: String?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -148,7 +150,8 @@ fun SummarySection(name: String, format: StatementFormat?, count: Int) {
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("Format: ${format ?: "Unknown"} • $count transactions", fontSize = 14.sp, color = Color.Gray)
+                val bankLabel = detectedBank?.let { " • $it" } ?: ""
+                Text("${format ?: "Unknown"}$bankLabel • $count transactions", fontSize = 14.sp, color = Color.Gray)
             }
         }
     }
@@ -215,7 +218,7 @@ fun ErrorDisplay(message: String) {
 }
 
 @Composable
-fun EmptyState() {
+fun EmptyState(profiledBanks: List<Bank>) {
     Column(
         modifier = Modifier.fillMaxSize().padding(top = 64.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -228,5 +231,16 @@ fun EmptyState() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text("No statement loaded", color = Color.Gray)
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            "Supported banks",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            color = Color.DarkGray
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        profiledBanks.forEach { bank ->
+            Text(bank.displayName, fontSize = 14.sp, color = Color.Gray)
+        }
     }
 }
