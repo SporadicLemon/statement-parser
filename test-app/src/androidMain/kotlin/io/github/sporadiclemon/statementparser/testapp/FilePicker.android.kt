@@ -9,7 +9,7 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 actual fun FilePicker(
     show: Boolean,
-    onFilePicked: (name: String, content: String) -> Unit,
+    onFilePicked: (name: String, bytes: ByteArray) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -17,11 +17,11 @@ actual fun FilePicker(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
             if (uri != null) {
-                val content = context.contentResolver.openInputStream(uri)?.use { 
-                    it.bufferedReader().readText() 
-                } ?: ""
+                val bytes = context.contentResolver.openInputStream(uri)?.use {
+                    it.readBytes()
+                } ?: ByteArray(0)
                 val fileName = uri.path?.split("/")?.lastOrNull() ?: "statement"
-                onFilePicked(fileName, content)
+                onFilePicked(fileName, bytes)
             } else {
                 onDismiss()
             }

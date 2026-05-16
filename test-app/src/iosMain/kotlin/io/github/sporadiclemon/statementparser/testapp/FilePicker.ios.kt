@@ -5,7 +5,7 @@ import androidx.compose.runtime.Composable
 @Composable
 actual fun FilePicker(
     show: Boolean,
-    onFilePicked: (name: String, content: String) -> Unit,
+    onFilePicked: (name: String, bytes: ByteArray) -> Unit,
     onDismiss: () -> Unit
 ) {
     // Note: iOS implementation usually requires platform-specific UIViewController logic

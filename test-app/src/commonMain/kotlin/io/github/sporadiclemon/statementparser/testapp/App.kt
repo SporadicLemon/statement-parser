@@ -55,12 +55,16 @@ fun App() {
 
         FilePicker(
             show = showFilePicker,
-            onFilePicked = { name, content ->
+            onFilePicked = { name, bytes ->
                 showFilePicker = false
                 fileName = name
-                val format = parser.detectFormat(name, content)
+                val format = parser.detectFormat(name, "")
                 detectedFormat = format
-                result = parser.parse(content, format)
+                result = if (format == StatementFormat.PDF) {
+                    parser.parsePdf(bytes)
+                } else {
+                    parser.parse(bytes.toString(Charsets.UTF_8), format)
+                }
             },
             onDismiss = { showFilePicker = false }
         )
@@ -87,7 +91,7 @@ fun App() {
                                 style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                "Select a CSV or OFX file to parse",
+                                "Select a CSV, OFX or PDF file to parse",
                                 style = MaterialTheme.typography.body2,
                                 color = Color.Gray
                             )

@@ -9,20 +9,20 @@ import java.io.File
 @Composable
 actual fun FilePicker(
     show: Boolean,
-    onFilePicked: (name: String, content: String) -> Unit,
+    onFilePicked: (name: String, bytes: ByteArray) -> Unit,
     onDismiss: () -> Unit
 ) {
     LaunchedEffect(show) {
         if (show) {
             val dialog = FileDialog(null as Frame?, "Select Statement", FileDialog.LOAD)
             dialog.isVisible = true
-            
+
             val file = dialog.file
             val dir = dialog.directory
-            
+
             if (file != null && dir != null) {
                 val pickedFile = File(dir, file)
-                onFilePicked(file, pickedFile.readText())
+                onFilePicked(file, pickedFile.readBytes())
             } else {
                 onDismiss()
             }

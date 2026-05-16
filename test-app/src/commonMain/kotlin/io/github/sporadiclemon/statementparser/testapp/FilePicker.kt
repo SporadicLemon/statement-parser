@@ -8,6 +8,6 @@ import androidx.compose.runtime.Composable
 @Composable
 expect fun FilePicker(
     show: Boolean,
-    onFilePicked: (name: String, content: String) -> Unit,
+    onFilePicked: (name: String, bytes: ByteArray) -> Unit,
     onDismiss: () -> Unit
 )

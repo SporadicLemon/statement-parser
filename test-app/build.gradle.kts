@@ -12,15 +12,15 @@ kotlin {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
-    
+
     jvm("desktop")
-    
+
     iosX64()
     iosArm64()
     iosSimulatorArm64()
-    
+
     applyDefaultHierarchyTemplate()
-    
+
     sourceSets {
         commonMain.dependencies {
             implementation(project(":"))
@@ -36,6 +36,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(compose.preview)
+            implementation(libs.pdfbox.android)
         }
         val desktopMain by getting {
             dependencies {
@@ -75,7 +76,11 @@ compose.desktop {
     application {
         mainClass = "io.github.sporadiclemon.statementparser.testapp.MainKt"
         nativeDistributions {
-            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg, org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi, org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb)
+            targetFormats(
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,
+            )
             packageName = "statement-parser-test"
             packageVersion = "1.0.0"
         }
