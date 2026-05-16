@@ -2,7 +2,9 @@ package io.github.sporadiclemon.statementparser
 
 import kotlinx.datetime.LocalDate
 
-internal class PdfParser {
+internal class PdfParser(
+    private val profiles: List<PdfBankProfile> = PdfBankProfiles.all
+) {
     private val extractor = PdfTextExtractor()
 
     fun parse(bytes: ByteArray, bankHint: String? = null): Result<ParsedStatement> =
@@ -11,7 +13,7 @@ internal class PdfParser {
     internal fun parseText(text: String, bankHint: String?): Result<ParsedStatement> = runCatching {
         val profile = resolveProfile(text, bankHint)
             ?: throw IllegalArgumentException(
-                "No PDF bank profile matched. Supported banks: ${PdfBankProfiles.all.joinToString { it.name }}"
+                "No PDF bank profile matched. Supported banks: ${profiles.joinToString { it.name }}"
             )
         val transactions = extractTransactions(text, profile)
         ParsedStatement(
@@ -25,9 +27,9 @@ internal class PdfParser {
 
     private fun resolveProfile(text: String, bankHint: String?): PdfBankProfile? =
         if (bankHint != null)
-            PdfBankProfiles.all.firstOrNull { it.name.equals(bankHint, ignoreCase = true) }
+            profiles.firstOrNull { it.name.equals(bankHint, ignoreCase = true) }
         else
-            PdfBankProfiles.all.firstOrNull { it.bankNamePattern.containsMatchIn(text) }
+            profiles.firstOrNull { it.bankNamePattern.containsMatchIn(text) }
 
     private fun extractTransactions(text: String, profile: PdfBankProfile): List<ParsedTransaction> =
         profile.transactionLinePattern.findAll(text).mapNotNull { match ->

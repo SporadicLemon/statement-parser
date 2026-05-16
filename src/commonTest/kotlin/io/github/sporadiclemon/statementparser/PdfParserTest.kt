@@ -3,7 +3,6 @@ package io.github.sporadiclemon.statementparser
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PdfParserTest {
@@ -38,8 +37,9 @@ class PdfParserTest {
 
             01 Jan 2024  Coffee Shop  -£3.00  £500.00
         """.trimIndent()
-        val result = parser.parseText(text, "Monzo")
-        assertNotNull(result.getOrNull())
+        val result = parser.parseText(text, "Monzo").getOrThrow()
+        assertEquals(1, result.transactions.size)
+        assertEquals(-3.00, result.transactions[0].amount)
     }
 
     @Test fun `returns failure when no profile matches and no bankHint`() {
@@ -108,5 +108,53 @@ class PdfParserTest {
         """.trimIndent()
         val result = parser.parseText(text, "Monzo").getOrThrow()
         assertEquals(1, result.transactions.size)
+    }
+
+    // --- Starling: dd/MM/yyyy date format ---
+
+    @Test fun `parses Starling extracted text with dd-MM-yyyy dates`() {
+        val text = """
+            Starling Bank
+            Account Statement
+
+            15/01/2024  Tesco Express  -4.50  295.50
+            20/01/2024  Salary  1500.00  1795.50
+        """.trimIndent()
+        val result = parser.parseText(text, "Starling").getOrThrow()
+        assertEquals(2, result.transactions.size)
+        assertEquals(LocalDate(2024, 1, 15), result.transactions[0].date)
+        assertEquals(-4.50, result.transactions[0].amount)
+        assertEquals("Tesco Express", result.transactions[0].description)
+        assertEquals(LocalDate(2024, 1, 20), result.transactions[1].date)
+        assertEquals(1500.00, result.transactions[1].amount)
+    }
+
+    // --- amountInGroup / amountOutGroup split columns ---
+
+    @Test fun `parses split amountInGroup and amountOutGroup columns`() {
+        val splitProfile = PdfBankProfile(
+            name = "SplitBank",
+            bankNamePattern = Regex("SplitBank"),
+            // group 3 = out (debit, optional), group 4 = in (credit, optional)
+            // Fixed-width columns: each amount field is exactly 10 chars wide.
+            transactionLinePattern = Regex(
+                """^(\d{2}/\d{2}/\d{4})  (.+?)  ([\d,]+\.\d{2})?          ([\d,]+\.\d{2})?""",
+                RegexOption.MULTILINE,
+            ),
+            dateGroup = 1,
+            descriptionGroup = 2,
+            amountGroup = null,
+            amountInGroup = 4,
+            amountOutGroup = 3,
+            dateFormat = "dd/MM/yyyy",
+        )
+        val parserWithSplitProfile = PdfParser(listOf(splitProfile))
+        // Debit row: out column populated, in column empty
+        // Credit row: out column empty, in column populated
+        val text = "15/01/2024  Tesco  4.50          \n20/01/2024  Salary            1500.00"
+        val result = parserWithSplitProfile.parseText(text, "SplitBank").getOrThrow()
+        assertEquals(2, result.transactions.size)
+        assertEquals(-4.50, result.transactions[0].amount)
+        assertEquals(1500.00, result.transactions[1].amount)
     }
 }
