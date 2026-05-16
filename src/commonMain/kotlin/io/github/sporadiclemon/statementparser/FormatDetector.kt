@@ -5,6 +5,7 @@ class FormatDetector {
         val ext = fileName.substringAfterLast('.', "").lowercase()
         if (ext == "ofx" || ext == "qfx") return StatementFormat.OFX
         if (ext == "csv") return StatementFormat.CSV
+        if (ext == "pdf") return StatementFormat.PDF
         val trimmed = content.trimStart()
         if (trimmed.startsWith("<?xml") ||
             trimmed.contains("<OFX>", ignoreCase = true) ||

@@ -27,4 +27,10 @@ class FormatDetectorTest {
     @Test fun `defaults to CSV for unknown extension with comma content`() {
         assertEquals(StatementFormat.CSV, detector.detect("export.txt", "Date,Amount,Description\n01/01/2024,100.00,Salary"))
     }
+    @Test fun `detects PDF by file extension`() {
+        assertEquals(StatementFormat.PDF, detector.detect("statement.pdf", ""))
+    }
+    @Test fun `detects PDF by uppercase extension`() {
+        assertEquals(StatementFormat.PDF, detector.detect("statement.PDF", ""))
+    }
 }

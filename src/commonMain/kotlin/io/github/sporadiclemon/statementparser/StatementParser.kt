@@ -20,6 +20,7 @@ class StatementParser {
         when (format) {
             StatementFormat.OFX -> ofxParser.parse(content)
             StatementFormat.CSV -> parseCsv(content, mapping)
+            StatementFormat.PDF -> Result.failure(UnsupportedOperationException("PDF parsing not yet implemented"))
         }
 
     private fun parseCsv(content: String, suppliedMapping: ColumnMapping?): Result<ParsedStatement> = runCatching {

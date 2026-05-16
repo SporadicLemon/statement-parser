@@ -1,3 +1,3 @@
 package io.github.sporadiclemon.statementparser
 
-enum class StatementFormat { CSV, OFX }
+enum class StatementFormat { CSV, OFX, PDF }
