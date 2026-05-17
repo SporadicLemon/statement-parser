@@ -1,18 +1,36 @@
 package io.github.sporadiclemon.statementparser
 
+/**
+ * The main entry point for parsing bank statements in various formats.
+ */
 class StatementParser {
 
     private val formatDetector = FormatDetector()
     private val csvParser = CsvParser()
     private val ofxParser = OFXParser()
-    private val pdfParser = PdfParser()
 
+    /**
+     * Returns a list of banks that have pre-defined CSV profiles.
+     */
     fun getProfiledBanks(): List<Bank> =
-        (CsvBankProfiles.all.map { it.bank } + PdfBankProfiles.all.map { it.bank }).distinct()
+        CsvBankProfiles.all.map { it.bank }.distinct()
 
+    /**
+     * Detects the format of a statement file based on its name and content.
+     *
+     * @param fileName The name of the file.
+     * @param content The string content of the file.
+     * @return The detected [StatementFormat].
+     */
     fun detectFormat(fileName: String, content: String): StatementFormat =
         formatDetector.detect(fileName, content)
 
+    /**
+     * Detects a bank's CSV profile based on the column headers.
+     *
+     * @param headers The list of column headers.
+     * @return The matching [CsvBankProfile], or null if none match.
+     */
     fun detectBank(headers: List<String>): CsvBankProfile? {
         val headerSet = headers.map { it.trim().lowercase() }.toSet()
         return CsvBankProfiles.all.firstOrNull { profile ->
@@ -20,6 +38,14 @@ class StatementParser {
         }
     }
 
+    /**
+     * Parses the string content of a statement (CSV or OFX).
+     *
+     * @param content The file content.
+     * @param format The [StatementFormat] of the content.
+     * @param mapping An optional custom [ColumnMapping] to use for CSV parsing.
+     * @return A [Result] containing the [ParsedStatement].
+     */
     fun parse(content: String, format: StatementFormat, mapping: ColumnMapping? = null): Result<ParsedStatement> =
         when (format) {
             StatementFormat.OFX -> ofxParser.parse(content)
@@ -29,8 +55,14 @@ class StatementParser {
             )
         }
 
-    fun parsePdf(bytes: ByteArray, bankHint: String? = null): Result<ParsedStatement> =
-        pdfParser.parse(bytes, bankHint)
+    /**
+     * Parses a PDF bank statement.
+     *
+     * @param bytes The raw bytes of the PDF file.
+     * @return A failure result until the PDF pipeline is fully wired up.
+     */
+    fun parsePdf(bytes: ByteArray): Result<ParsedStatement> =
+        Result.failure(UnsupportedOperationException("PDF pipeline not yet wired up"))
 
     private fun parseCsv(content: String, suppliedMapping: ColumnMapping?): Result<ParsedStatement> = runCatching {
         val headers = csvParser.parseHeaders(content)

@@ -37,9 +37,7 @@ class StatementParserTest {
 
     @Test
     fun `detectBank returns Monzo profile for Monzo headers`() {
-        val headers = listOf("Transaction ID", "Date", "Time", "Type", "Name", "Emoji", "Category",
-            "Amount", "Currency", "Local amount", "Local currency", "Notes and #tags",
-            "Address", "Receipt", "Description", "Category split", "Money Out", "Money In")
+        val headers = listOf("Transaction ID", "Local amount", "Category split", "Money Out", "Money In")
         val profile = parser.detectBank(headers)
         assertEquals(Bank.MONZO, profile?.bank)
     }
@@ -51,7 +49,7 @@ class StatementParserTest {
 
     @Test
     fun `detectBank is case insensitive for header matching`() {
-        val headers = listOf("transaction id", "money out", "money in")
+        val headers = listOf("transaction id", "local amount", "category split", "money out", "money in")
         assertNotNull(parser.detectBank(headers))
     }
 
@@ -97,7 +95,7 @@ class StatementParserTest {
 
     @Test
     fun `parsePdf returns failure for empty bytes`() {
-        val result = parser.parsePdf(ByteArray(0), bankHint = "Monzo")
+        val result = parser.parsePdf(ByteArray(0))
         assertTrue(result.isFailure)
     }
 }

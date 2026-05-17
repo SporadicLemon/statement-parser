@@ -1,13 +1,11 @@
 package io.github.sporadiclemon.statementparser
 
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
+import kotlin.test.assertEquals
 
 class PdfTextExtractorTest {
-    @Test fun `JVM stub throws UnsupportedOperationException`() {
-        // On JVM (which runs commonTest), extractText should throw
-        assertFailsWith<UnsupportedOperationException> {
-            PdfTextExtractor().extractText(ByteArray(0))
-        }
+    @Test fun `extract returns empty list for empty input`() {
+        val fragments = PdfTextExtractor().extract(ByteArray(0))
+        assertEquals(emptyList(), fragments)
     }
 }
