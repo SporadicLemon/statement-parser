@@ -8,7 +8,7 @@ class PdfBankProfileTest {
 
     @Test
     fun `NatWest profile has correct detection keywords`() {
-        assertTrue(PdfBankProfiles.NATWEST.detectionKeywords.any { it.contains("NatWest") })
+        assertEquals(listOf("NatWest", "National Westminster"), PdfBankProfiles.NATWEST.detectionKeywords)
     }
 
     @Test
