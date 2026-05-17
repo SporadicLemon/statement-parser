@@ -70,4 +70,19 @@ class ColumnDetectorTest {
         val fragments = listOf(TextFragment("Some random text", x = 100f, y = 100f, page = 0))
         assertNull(detector.detect(fragments, PdfBankProfiles.NATWEST))
     }
+
+    @Test
+    fun `groupByRow keeps fragments with drifting y in same group`() {
+        val fragments = listOf(
+            TextFragment("A", x = 10f, y = 100.0f, page = 0),
+            TextFragment("B", x = 50f, y = 101.5f, page = 0),
+            TextFragment("C", x = 90f, y = 101.8f, page = 0),
+            // New row: 6pt gap from anchor 100.0
+            TextFragment("D", x = 10f, y = 110.0f, page = 0),
+        )
+        val rows = detector.groupByRow(fragments)
+        assertEquals(2, rows.size)
+        assertEquals(3, rows[0].size)
+        assertEquals(1, rows[1].size)
+    }
 }

@@ -41,14 +41,13 @@ class ColumnDetector {
         val sorted = fragments.sortedWith(compareBy({ it.page }, { it.y }))
         val groups = mutableListOf<MutableList<TextFragment>>()
         var currentGroup = mutableListOf<TextFragment>()
-        var lastY = Float.MIN_VALUE
         var lastPage = -1
 
         for (f in sorted) {
-            if (f.page != lastPage || kotlin.math.abs(f.y - lastY) > 2f) {
+            val anchorY = currentGroup.firstOrNull()?.y ?: f.y
+            if (f.page != lastPage || kotlin.math.abs(f.y - anchorY) > 2f) {
                 if (currentGroup.isNotEmpty()) groups.add(currentGroup)
                 currentGroup = mutableListOf()
-                lastY = f.y
                 lastPage = f.page
             }
             currentGroup.add(f)
