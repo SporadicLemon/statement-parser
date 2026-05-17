@@ -2,95 +2,44 @@ package io.github.sporadiclemon.statementparser
 
 data class PdfBankProfile(
     val bank: Bank,
-    val bankNamePattern: Regex,
-    val transactionLinePattern: Regex,
-    val dateGroup: Int,
-    val descriptionGroup: Int,
-    val amountGroup: Int?,
-    val amountInGroup: Int?,
-    val amountOutGroup: Int?,
+    val detectionKeywords: List<String>,
+    val columnHeaders: Map<ColumnRole, String>,
     val dateFormat: String,
+    val dateIncludesYear: Boolean,
+    val transactionTypePrefixes: List<String> = emptyList(),
 )
 
 object PdfBankProfiles {
-    val all: List<PdfBankProfile> =
-        listOf(
-            PdfBankProfile(
-                bank = Bank.MONZO,
-                bankNamePattern = Regex("Monzo Bank", RegexOption.IGNORE_CASE),
-                transactionLinePattern =
-                    Regex(
-                        """^(\d{1,2} \w{3} \d{4})\s{2,}(.+?)\s{2,}([+-]?£[\d,]+\.\d{2})""",
-                        RegexOption.MULTILINE,
-                    ),
-                dateGroup = 1,
-                descriptionGroup = 2,
-                amountGroup = 3,
-                amountInGroup = null,
-                amountOutGroup = null,
-                dateFormat = "dd MMM yyyy",
-            ),
-            PdfBankProfile(
-                bank = Bank.STARLING,
-                bankNamePattern = Regex("Starling Bank", RegexOption.IGNORE_CASE),
-                transactionLinePattern =
-                    Regex(
-                        """^(\d{2}/\d{2}/\d{4})\s{2,}(.+?)\s{2,}([+-]?[\d,]+\.\d{2})""",
-                        RegexOption.MULTILINE,
-                    ),
-                dateGroup = 1,
-                descriptionGroup = 2,
-                amountGroup = 3,
-                amountInGroup = null,
-                amountOutGroup = null,
-                dateFormat = "dd/MM/yyyy",
-            ),
-            PdfBankProfile(
-                bank = Bank.HSBC,
-                bankNamePattern = Regex("HSBC", RegexOption.IGNORE_CASE),
-                transactionLinePattern =
-                    Regex(
-                        """^(\d{2} \w{3} \d{2})\s{2,}(.+?)\s{2,}([\d,]+\.\d{2})\s+([\d,]+\.\d{2})""",
-                        RegexOption.MULTILINE,
-                    ),
-                dateGroup = 1,
-                descriptionGroup = 2,
-                amountGroup = 3,
-                amountInGroup = null,
-                amountOutGroup = null,
-                dateFormat = "dd MMM yy",
-            ),
-            PdfBankProfile(
-                bank = Bank.LLOYDS,
-                bankNamePattern = Regex("Lloyds Bank", RegexOption.IGNORE_CASE),
-                transactionLinePattern =
-                    Regex(
-                        """^(\d{2} \w{3} \d{4})\s+(.+?)\s+([\d,]+\.\d{2})D?\s""",
-                        RegexOption.MULTILINE,
-                    ),
-                dateGroup = 1,
-                descriptionGroup = 2,
-                amountGroup = 3,
-                amountInGroup = null,
-                amountOutGroup = null,
-                dateFormat = "dd MMM yyyy",
-            ),
-            // NatWest: captures the first amount after the description (debit or credit).
-            // Sign direction requires real PDF validation — update in Task 7.
-            PdfBankProfile(
-                bank = Bank.NATWEST,
-                bankNamePattern = Regex("NatWest", RegexOption.IGNORE_CASE),
-                transactionLinePattern =
-                    Regex(
-                        """^(\d{2} \w{3} \d{4})\s{2,}(.+?)\s{2,}([\d,]+\.\d{2})""",
-                        RegexOption.MULTILINE,
-                    ),
-                dateGroup = 1,
-                descriptionGroup = 2,
-                amountGroup = 3,
-                amountInGroup = null,
-                amountOutGroup = null,
-                dateFormat = "dd MMM yyyy",
-            ),
-        )
+    val NATWEST = PdfBankProfile(
+        bank = Bank.NATWEST,
+        detectionKeywords = listOf("NatWest", "National Westminster"),
+        columnHeaders = mapOf(
+            ColumnRole.DATE        to "Date",
+            ColumnRole.DESCRIPTION to "Description",
+            ColumnRole.AMOUNT_IN   to "Paid In",
+            ColumnRole.AMOUNT_OUT  to "Withdrawn",
+            ColumnRole.BALANCE     to "Balance",
+        ),
+        dateFormat = "dd MMM",
+        dateIncludesYear = false,
+        transactionTypePrefixes = listOf(
+            "Automated Credit", "OnLine Transaction", "Direct Debit",
+            "Standing Order", "ATM", "XFER",
+        ),
+    )
+
+    val MONZO = PdfBankProfile(
+        bank = Bank.MONZO,
+        detectionKeywords = listOf("Monzo"),
+        columnHeaders = mapOf(
+            ColumnRole.DATE        to "Date",
+            ColumnRole.DESCRIPTION to "Description (GBP)",
+            ColumnRole.AMOUNT      to "Amount (GBP)",
+            ColumnRole.BALANCE     to "Balance",
+        ),
+        dateFormat = "dd/MM/yyyy",
+        dateIncludesYear = true,
+    )
+
+    val all: List<PdfBankProfile> = listOf(NATWEST, MONZO)
 }
