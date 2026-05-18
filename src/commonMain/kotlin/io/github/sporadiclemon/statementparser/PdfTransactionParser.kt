@@ -18,6 +18,10 @@ class PdfTransactionParser {
         for (row in rows) {
             val hasAmount = row.amountIn != null || row.amountOut != null || row.amount != null
 
+            if (row.description.contains("BROUGHT FORWARD", ignoreCase = true) && !hasAmount) {
+                continue
+            }
+
             if (row.date != null) {
                 val dateText = row.date.replace(Regex("""\s+\d{4}$"""), "").trim()
                 val parsed = DateParser.parse(
@@ -26,10 +30,6 @@ class PdfTransactionParser {
                     yearHint = statementYear,
                 )
                 if (parsed != null) currentDate = parsed
-            }
-
-            if (row.description.contains("BROUGHT FORWARD", ignoreCase = true) && !hasAmount) {
-                continue
             }
 
             val isNewTransaction = row.date != null ||
@@ -67,7 +67,7 @@ class PdfTransactionParser {
 
     private fun resolveAmount(row: RawTableRow): Double? = when {
         row.amountIn  != null -> row.amountIn.clean().toDoubleOrNull()
-        row.amountOut != null -> -(row.amountOut.clean().toDoubleOrNull() ?: return null)
+        row.amountOut != null -> row.amountOut.clean().toDoubleOrNull()?.let { -it }
         row.amount    != null -> row.amount.clean().toDoubleOrNull()
         else -> null
     }
