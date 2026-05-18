@@ -84,12 +84,22 @@ class TableRowAssemblerTest {
     }
 
     @Test
-    fun `skips rows with no recognised column content`() {
+    fun `emits row when fragment falls in description column`() {
         val fragments = listOf(
             TextFragment("PAGE", x = 270f, y = 200f, page = 0),
         )
         val rows = assembler.assemble(fragments, natwestLayout)
         assertEquals(1, rows.size)
         assertEquals("PAGE", rows[0].description)
+    }
+
+    @Test
+    fun `drops row when no fragment falls in description column`() {
+        val fragments = listOf(
+            // x=440 falls in AMOUNT_OUT only — no description content
+            TextFragment("50.00", x = 440f, y = 200f, page = 0),
+        )
+        val rows = assembler.assemble(fragments, natwestLayout)
+        assertEquals(0, rows.size)
     }
 }
