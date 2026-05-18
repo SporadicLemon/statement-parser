@@ -17,7 +17,7 @@ object DateParser {
         try {
             when (format) {
                 "dd/MM/yyyy" -> {
-                    val parts = text.trim().split('/', '-', '.')
+                    val parts = text.trim().split('/')
                     if (parts.size != 3) null
                     else LocalDate(year = parts[2].toInt(), monthNumber = parts[1].toInt(), dayOfMonth = parts[0].toInt())
                 }
