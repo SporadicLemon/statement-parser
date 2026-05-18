@@ -23,18 +23,18 @@ object DateParser {
                 }
                 "dd MMM" -> {
                     val parts = text.trim().split(" ")
-                    if (parts.size != 2) return null
-                    val day = parts[0].toIntOrNull() ?: return null
-                    val month = MONTHS[parts[1].lowercase()] ?: return null
-                    LocalDate(year = yearHint ?: currentYear(), monthNumber = month, dayOfMonth = day)
+                    val day = if (parts.size == 2) parts[0].toIntOrNull() else null
+                    val month = if (parts.size == 2) MONTHS[parts[1].lowercase()] else null
+                    if (day == null || month == null) null
+                    else LocalDate(year = yearHint ?: currentYear(), monthNumber = month, dayOfMonth = day)
                 }
                 "dd MMM yyyy" -> {
                     val parts = text.trim().split(" ")
-                    if (parts.size != 3) return null
-                    val day = parts[0].toIntOrNull() ?: return null
-                    val month = MONTHS[parts[1].lowercase()] ?: return null
-                    val year = parts[2].toIntOrNull() ?: return null
-                    LocalDate(year = year, monthNumber = month, dayOfMonth = day)
+                    val day = if (parts.size == 3) parts[0].toIntOrNull() else null
+                    val month = if (parts.size == 3) MONTHS[parts[1].lowercase()] else null
+                    val year = if (parts.size == 3) parts[2].toIntOrNull() else null
+                    if (day == null || month == null || year == null) null
+                    else LocalDate(year = year, monthNumber = month, dayOfMonth = day)
                 }
                 else -> null
             }
