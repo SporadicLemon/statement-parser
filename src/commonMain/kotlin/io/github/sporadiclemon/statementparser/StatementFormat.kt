@@ -1,3 +1,13 @@
 package io.github.sporadiclemon.statementparser
 
-enum class StatementFormat { CSV, OFX, PDF }
+/**
+ * Supported statement file formats.
+ */
+enum class StatementFormat { 
+    /** Comma Separated Values. */
+    CSV, 
+    /** Open Financial Exchange. */
+    OFX, 
+    /** Portable Document Format. */
+    PDF 
+}

@@ -10,7 +10,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         PDFBoxResourceLoader.init(applicationContext)
         setContent {
-            App()
+            AndroidApp()
         }
     }
 }

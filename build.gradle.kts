@@ -38,6 +38,13 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.pdfbox.android)
         }
+        val androidInstrumentedTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.androidx.test.runner)
+                implementation(libs.androidx.test.ext.junit)
+            }
+        }
     }
 }
 
@@ -45,7 +52,8 @@ android {
     namespace = "io.github.sporadiclemon.statementparser"
     compileSdk = 36
     defaultConfig {
-        minSdk = 24
+        minSdk = 28
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 }
 

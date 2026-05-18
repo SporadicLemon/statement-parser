@@ -56,13 +56,52 @@ class StatementParser {
         }
 
     /**
-     * Parses a PDF bank statement.
+     * Parses a PDF bank statement using the coordinate-based pipeline.
      *
      * @param bytes The raw bytes of the PDF file.
-     * @return A failure result until the PDF pipeline is fully wired up.
+     * @return A [Result] containing the [ParsedStatement].
      */
-    fun parsePdf(bytes: ByteArray): Result<ParsedStatement> =
-        Result.failure(UnsupportedOperationException("PDF pipeline not yet wired up"))
+    fun parsePdf(bytes: ByteArray): Result<ParsedStatement> = runCatching {
+        if (bytes.isEmpty()) throw IllegalArgumentException("PDF bytes must not be empty")
+
+        val fragments = PdfTextExtractor().extract(bytes)
+        if (fragments.isEmpty()) throw IllegalStateException("No text extracted from PDF")
+
+        val profile = BankDetector().detect(fragments)
+            ?: throw IllegalArgumentException("Unrecognised bank — no matching PDF profile found")
+
+        val layout = ColumnDetector().detect(fragments, profile)
+            ?: throw IllegalStateException("Could not detect table columns in PDF")
+
+        val rows = TableRowAssembler().assemble(fragments, layout)
+
+        val year = if (!profile.dateIncludesYear) extractStatementYear(fragments) else null
+
+        val transactions = PdfTransactionParser().parse(rows, profile, statementYear = year)
+
+        ParsedStatement(
+            transactions = transactions,
+            accountInfo = extractAccountInfo(fragments, profile),
+            detectedBank = profile.bank,
+        )
+    }
+
+    private fun extractStatementYear(fragments: List<TextFragment>): Int? {
+        val yearRegex = Regex("""\b(20\d{2})\b""")
+        return fragments.filter { it.page == 0 }
+            .firstNotNullOfOrNull { yearRegex.find(it.text)?.groupValues?.get(1)?.toIntOrNull() }
+    }
+
+    private fun extractAccountInfo(fragments: List<TextFragment>, profile: PdfBankProfile): ParsedAccountInfo? {
+        val acctRegex = Regex("""\b(\d{8})\b""")
+        val acctFragment = fragments.filter { it.page == 0 }.firstOrNull { acctRegex.containsMatchIn(it.text) }
+        return acctFragment?.let {
+            ParsedAccountInfo(
+                institutionName = profile.bank.displayName,
+                accountNumber = acctRegex.find(it.text)?.groupValues?.get(1),
+            )
+        }
+    }
 
     private fun parseCsv(content: String, suppliedMapping: ColumnMapping?): Result<ParsedStatement> = runCatching {
         val headers = csvParser.parseHeaders(content)

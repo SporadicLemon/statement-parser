@@ -50,7 +50,9 @@ import io.github.sporadiclemon.statementparser.StatementParser
 
 @Suppress("ktlint:standard:function-naming")
 @Composable
-fun App() {
+fun App(
+    onParsePdf: ((ByteArray, String?) -> Result<ParsedStatement>)? = null
+) {
     MaterialTheme(colors = lightColors()) {
         val parser = remember { StatementParser() }
         val profiledBanks = remember { parser.getProfiledBanks() }
@@ -69,7 +71,8 @@ fun App() {
                 detectedFormat = format
                 result =
                     if (format == StatementFormat.PDF) {
-                        parser.parsePdf(bytes, bankHint = selectedBank?.displayName)
+                        onParsePdf?.invoke(bytes, selectedBank?.displayName) 
+                            ?: parser.parsePdf(bytes, bankHint = selectedBank?.displayName)
                     } else {
                         parser.parse(bytes.decodeToString(), format)
                     }

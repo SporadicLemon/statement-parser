@@ -42,7 +42,11 @@
       "Bash(grep -v \"^$\")",
       "Bash(./gradlew :test-app:compileDesktopMainKotlinMetadata)",
       "Bash(./gradlew :test-app:tasks)",
-      "Bash(./gradlew :test-app:compileDebugSources)"
+      "Bash(./gradlew :test-app:compileDebugSources)",
+      "Bash(./gradlew :test-app:compileCommonMainKotlinMetadata :test-app:compileDebugSources)",
+      "Bash(./gradlew :statement-parser:jvmTest --tests \"io.github.sporadiclemon.statementparser.PdfParserTest\" --tests \"io.github.sporadiclemon.statementparser.PdfBankProfilesTest\")",
+      "Bash(./gradlew projects *)",
+      "Bash(./gradlew compileTestKotlinJvm)"
     ]
   }
 }

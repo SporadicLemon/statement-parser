@@ -4,8 +4,15 @@ object CsvBankProfiles {
     val all: List<CsvBankProfile> = listOf(
         CsvBankProfile(
             bank = Bank.MONZO,
-            headerSignature = setOf("Transaction ID", "Money Out", "Money In"),
-            mapping = ColumnMapping(dateIndex=1, dateFormat="dd/MM/yyyy", amountIndex=null, amountInIndex=17, amountOutIndex=16, descriptionIndex=4),
+            headerSignature = setOf("Transaction ID", "Local amount", "Category split", "Money Out", "Money In"),
+            mapping = ColumnMapping(
+                dateIndex = 1,
+                dateFormat = "dd/MM/yyyy",
+                amountIndex = null,
+                amountInIndex = 17,
+                amountOutIndex = 16,
+                descriptionIndex = 4,
+            ),
         ),
         CsvBankProfile(
             bank = Bank.STARLING,
