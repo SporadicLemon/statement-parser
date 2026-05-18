@@ -9,6 +9,7 @@ datastore = "1.2.1"
 mavenPublish = "0.30.0"
 androidx-activityCompose = "1.9.3"
 pdfbox-android = "2.0.27.0"
+pdfbox = "3.0.3"
 androidx-test-runner = "1.7.0"
 androidx-test-ext-junit = "1.3.0"
 
@@ -20,6 +21,7 @@ datastore-preferences-core = { group = "androidx.datastore", name = "datastore-p
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfbox-android" }
+pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version.ref = "pdfbox" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidx-test-runner" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-ext-junit" }
 

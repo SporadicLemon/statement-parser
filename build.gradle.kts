@@ -38,6 +38,9 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.pdfbox.android)
         }
+        jvmMain.dependencies {
+            implementation(libs.pdfbox)
+        }
         val androidInstrumentedTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
