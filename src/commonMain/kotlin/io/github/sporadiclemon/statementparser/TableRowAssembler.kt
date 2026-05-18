@@ -7,25 +7,25 @@ class TableRowAssembler {
             if (f.page == layout.headerPage) f.y > layout.headerY else true
         }
 
-        val columnDetector = ColumnDetector()
-        val rows = columnDetector.groupByRow(relevant)
+        val rows = ColumnDetector().groupByRow(relevant)
 
         return rows.mapNotNull { rowFragments ->
-            val byRole = ColumnRole.entries.associateWith { role ->
+            fun columnText(role: ColumnRole): String? =
                 layout.columns[role]?.let { range ->
-                    rowFragments.filter { it.x in range }.sortedBy { it.x }
-                        .joinToString(" ") { it.text }.takeIf { it.isNotBlank() }
+                    rowFragments.filter { it.x in range }
+                        .sortedBy { it.x }
+                        .joinToString(" ") { it.text }
+                        .takeIf { it.isNotBlank() }
                 }
-            }
 
-            val description = byRole[ColumnRole.DESCRIPTION] ?: return@mapNotNull null
+            val description = columnText(ColumnRole.DESCRIPTION) ?: return@mapNotNull null
             RawTableRow(
-                date        = byRole[ColumnRole.DATE],
+                date        = columnText(ColumnRole.DATE),
                 description = description,
-                amountIn    = byRole[ColumnRole.AMOUNT_IN],
-                amountOut   = byRole[ColumnRole.AMOUNT_OUT],
-                amount      = byRole[ColumnRole.AMOUNT],
-                balance     = byRole[ColumnRole.BALANCE],
+                amountIn    = columnText(ColumnRole.AMOUNT_IN),
+                amountOut   = columnText(ColumnRole.AMOUNT_OUT),
+                amount      = columnText(ColumnRole.AMOUNT),
+                balance     = columnText(ColumnRole.BALANCE),
                 pageY       = rowFragments.minOf { it.y },
             )
         }
