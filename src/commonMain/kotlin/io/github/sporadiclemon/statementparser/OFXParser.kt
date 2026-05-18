@@ -8,22 +8,17 @@ class OFXParser {
             val bankId = extractTag(content, "BANKID")
             val acctId = extractTag(content, "ACCTID")
 
-            val accountInfoResult =
-                if (bankId != null || acctId != null) {
-                    AccountInfoResult.Found(ParsedAccountInfo(institutionName = bankId, accountNumber = acctId))
-                } else {
-                    AccountInfoResult.NotAvailable(AccountInfoUnavailableReason.MissingFromFile)
-                }
+            val accountInfo =
+                if (bankId != null || acctId != null) ParsedAccountInfo(bankId, acctId)
+                else null
 
             val transactionBlocks = extractAllTags(content, "STMTTRN")
             val transactions = transactionBlocks.mapNotNull { parseTransaction(it) }
 
             ParsedStatement(
                 transactions = transactions,
-                accountInfoResult = accountInfoResult,
+                accountInfo = accountInfo,
                 detectedBank = null,
-                suggestedMapping = null,
-                rawHeaders = null,
             )
         }
 
@@ -42,51 +37,26 @@ class OFXParser {
             if (cleaned.length < 8) return null
             LocalDate(
                 year = cleaned.substring(0, 4).toInt(),
-                month = kotlinx.datetime.Month(cleaned.substring(4, 6).toInt()),
-                day = cleaned.substring(6, 8).toInt(),
+                monthNumber = cleaned.substring(4, 6).toInt(),
+                dayOfMonth = cleaned.substring(6, 8).toInt(),
             )
         } catch (_: Exception) {
             null
         }
     }
 
-    private fun extractTag(
-        content: String,
-        tag: String,
-    ): String? {
-        // Handle both <TAG>value</TAG> and <TAG>value (SGML-style)
-        // Try <TAG>value</TAG> first
+    private fun extractTag(content: String, tag: String): String? {
         val xmlMatch = Regex("<$tag>([^<]+)</$tag>", RegexOption.IGNORE_CASE).find(content)
         if (xmlMatch != null) return xmlMatch.groupValues[1].trim()
-
-        // Fallback to SGML style: <TAG>value followed by newline or next tag
         val sgmlMatch = Regex("<$tag>([^\\r\\n<]+)", RegexOption.IGNORE_CASE).find(content)
         return sgmlMatch?.groupValues?.get(1)?.trim()
     }
 
-    private fun extractAllTags(
-        content: String,
-        tag: String,
-    ): List<String> {
-        // STMTTRN is usually a block with a closing tag in modern OFX,
-        // but can be just a start tag in older OFX.
-        // We'll support both.
-
-        val xmlMatches =
-            Regex("<$tag>([\\s\\S]*?)</$tag>", RegexOption.IGNORE_CASE)
-                .findAll(content)
-                .map { it.groupValues[1] }
-                .toList()
-
+    private fun extractAllTags(content: String, tag: String): List<String> {
+        val xmlMatches = Regex("<$tag>([\\s\\S]*?)</$tag>", RegexOption.IGNORE_CASE)
+            .findAll(content).map { it.groupValues[1] }.toList()
         if (xmlMatches.isNotEmpty()) return xmlMatches
-
-        // If no closing tags found, try to find blocks starting with <tag> until next <tag> or end of parent block
-        // This is trickier with regex, but we can try split by <TAG>
         val parts = content.split(Regex("<$tag>", RegexOption.IGNORE_CASE))
-        if (parts.size > 1) {
-            return parts.drop(1)
-        }
-
-        return emptyList()
+        return if (parts.size > 1) parts.drop(1) else emptyList()
     }
 }

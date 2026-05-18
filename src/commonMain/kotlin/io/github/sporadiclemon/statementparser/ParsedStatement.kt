@@ -2,32 +2,20 @@ package io.github.sporadiclemon.statementparser
 
 import kotlinx.datetime.LocalDate
 
-data class ParsedStatement(
-    val transactions: List<ParsedTransaction>,
-    val accountInfoResult: AccountInfoResult,
-    val detectedBank: Bank?,
-    val suggestedMapping: ColumnMapping?,
-    val rawHeaders: List<String>?,
-)
-
 data class ParsedTransaction(
     val date: LocalDate,
     val amount: Double,
     val description: String,
-    val raw: String,
+    val raw: String = "",
+    val runningBalance: Double? = null,
+    val metadata: Map<String, String> = emptyMap(),
 )
 
-sealed class AccountInfoResult {
-    data class Found(
-        val info: ParsedAccountInfo,
-    ) : AccountInfoResult()
-
-    data class NotAvailable(
-        val reason: AccountInfoUnavailableReason,
-    ) : AccountInfoResult()
-}
-
-enum class AccountInfoUnavailableReason { CsvFormat, MissingFromFile }
+data class ParsedStatement(
+    val transactions: List<ParsedTransaction>,
+    val accountInfo: ParsedAccountInfo?,
+    val detectedBank: Bank?,
+)
 
 data class ParsedAccountInfo(
     val institutionName: String?,

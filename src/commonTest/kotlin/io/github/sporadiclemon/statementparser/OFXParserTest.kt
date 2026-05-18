@@ -3,7 +3,8 @@ package io.github.sporadiclemon.statementparser
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class OFXParserTest {
@@ -97,31 +98,22 @@ class OFXParserTest {
     }
 
     @Test
-    fun `returns Found account info when BANKID and ACCTID present`() {
+    fun `returns accountInfo when BANKID and ACCTID present`() {
         val result = parser.parse(validOfx).getOrThrow()
-        val info = assertIs<AccountInfoResult.Found>(result.accountInfoResult)
-        assertEquals("123456", info.info.institutionName)
-        assertEquals("87654321", info.info.accountNumber)
+        val info = assertNotNull(result.accountInfo)
+        assertEquals("123456", info.institutionName)
+        assertEquals("87654321", info.accountNumber)
     }
 
     @Test
-    fun `returns MissingFromFile when account block absent`() {
+    fun `returns null accountInfo when account block absent`() {
         val result = parser.parse(ofxMissingAccount).getOrThrow()
-        val notAvailable = assertIs<AccountInfoResult.NotAvailable>(result.accountInfoResult)
-        assertEquals(AccountInfoUnavailableReason.MissingFromFile, notAvailable.reason)
-    }
-
-    @Test
-    fun `accountInfoResult is never CsvFormat for OFX`() {
-        val result = parser.parse(ofxMissingAccount).getOrThrow()
-        val notAvailable = assertIs<AccountInfoResult.NotAvailable>(result.accountInfoResult)
-        assertTrue(notAvailable.reason != AccountInfoUnavailableReason.CsvFormat)
+        assertNull(result.accountInfo)
     }
 
     @Test
     fun `returns success but 0 transactions for completely malformed content`() {
         val result = parser.parse("not xml at all %%%")
-        // Should succeed but return 0 transactions (graceful degradation)
         assertEquals(0, result.getOrThrow().transactions.size)
     }
 }

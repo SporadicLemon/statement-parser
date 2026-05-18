@@ -71,10 +71,8 @@ class StatementParser {
         val transactions = csvParser.parse(content, resolvedMapping).getOrThrow()
         ParsedStatement(
             transactions = transactions,
-            accountInfoResult = AccountInfoResult.NotAvailable(AccountInfoUnavailableReason.CsvFormat),
+            accountInfo = null,
             detectedBank = bank?.bank,
-            suggestedMapping = if (bank == null) resolvedMapping else null,
-            rawHeaders = if (bank == null) headers else null,
         )
     }
 
