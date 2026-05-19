@@ -7,13 +7,6 @@ data class PdfBankProfile(
     val dateFormat: String,
     val dateIncludesYear: Boolean,
     val transactionTypePrefixes: List<String> = emptyList(),
-    /**
-     * Optional text-line-based parser for PDFs where all columns are merged into
-     * a single fragment per row (i.e. coordinate-based column detection is not possible).
-     * When non-null, [StatementParser.parsePdf] bypasses [ColumnDetector] and delegates
-     * directly to this function after bank detection and text extraction.
-     */
-    val lineParser: ((fragments: List<TextFragment>, statementYear: Int?) -> List<ParsedTransaction>)? = null,
 )
 
 object PdfBankProfiles {
@@ -33,7 +26,6 @@ object PdfBankProfiles {
             "Automated Credit", "OnLine Transaction", "Direct Debit",
             "Standing Order", "ATM", "XFER",
         ),
-        lineParser = { fragments, year -> NatWestLineParser.parse(fragments, year) },
     )
 
     val MONZO = PdfBankProfile(

@@ -72,14 +72,10 @@ class StatementParser {
 
         val year = if (!profile.dateIncludesYear) extractStatementYear(fragments) else null
 
-        val transactions = if (profile.lineParser != null) {
-            profile.lineParser.invoke(fragments, year)
-        } else {
-            val layout = ColumnDetector().detect(fragments, profile)
-                ?: throw IllegalStateException("Could not detect table columns in PDF")
-            val rows = TableRowAssembler().assemble(fragments, layout)
-            PdfTransactionParser().parse(rows, profile, statementYear = year)
-        }
+        val layout = ColumnDetector().detect(fragments, profile)
+            ?: throw IllegalStateException("Could not detect table columns in PDF")
+        val rows = TableRowAssembler().assemble(fragments, layout)
+        val transactions = PdfTransactionParser().parse(rows, profile, statementYear = year)
 
         ParsedStatement(
             transactions = transactions,

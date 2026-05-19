@@ -9,14 +9,29 @@ class TableRowAssembler {
 
         val rows = ColumnDetector().groupByRow(relevant)
 
+        val amountRoles = setOf(ColumnRole.AMOUNT_IN, ColumnRole.AMOUNT_OUT, ColumnRole.AMOUNT, ColumnRole.BALANCE)
+        val numericRe = Regex("""^\d[\d,]*\.\d{2}$""")
+
+        data class Classified(val fragment: TextFragment, val role: ColumnRole)
+
         return rows.mapNotNull { rowFragments ->
-            fun columnText(role: ColumnRole): String? =
-                layout.columns[role]?.let { range ->
-                    rowFragments.filter { it.x in range }
-                        .sortedBy { it.x }
-                        .joinToString(" ") { it.text }
-                        .takeIf { it.isNotBlank() }
+            val classified = rowFragments.mapNotNull { frag ->
+                val role = ColumnRole.entries.firstOrNull { r ->
+                    layout.columns[r]?.let { range -> frag.x in range } == true
+                } ?: return@mapNotNull null
+                val effectiveRole = if (role in amountRoles && !numericRe.matches(frag.text.trim())) {
+                    ColumnRole.DESCRIPTION
+                } else {
+                    role
                 }
+                Classified(frag, effectiveRole)
+            }
+
+            fun columnText(role: ColumnRole): String? =
+                classified.filter { it.role == role }
+                    .sortedBy { it.fragment.x }
+                    .joinToString(" ") { it.fragment.text }
+                    .takeIf { it.isNotBlank() }
 
             val description = columnText(ColumnRole.DESCRIPTION) ?: return@mapNotNull null
             RawTableRow(

@@ -28,17 +28,42 @@ private class CoordinateStripper : PDFTextStripper() {
     }
 
     override fun writeString(string: String, textPositions: MutableList<TextPosition>) {
-        val trimmed = string.trim()
-        if (trimmed.isNotEmpty() && textPositions.isNotEmpty()) {
+        var wordStart = -1
+        val wordChars = StringBuilder()
+
+        for (i in string.indices) {
+            val ch = string[i]
+            if (ch.isWhitespace()) {
+                if (wordStart >= 0 && wordChars.isNotBlank()) {
+                    val pos = textPositions[wordStart]
+                    fragments.add(
+                        TextFragment(
+                            text = wordChars.toString(),
+                            x = pos.xDirAdj,
+                            y = pos.yDirAdj,
+                            page = currentPage - 1,
+                        )
+                    )
+                    wordChars.clear()
+                    wordStart = -1
+                }
+            } else {
+                if (wordStart < 0) wordStart = i
+                wordChars.append(ch)
+            }
+        }
+        if (wordStart >= 0 && wordChars.isNotBlank()) {
+            val pos = textPositions[wordStart]
             fragments.add(
                 TextFragment(
-                    text = trimmed,
-                    x = textPositions.first().xDirAdj,
-                    y = textPositions.first().yDirAdj,
+                    text = wordChars.toString(),
+                    x = pos.xDirAdj,
+                    y = pos.yDirAdj,
                     page = currentPage - 1,
                 )
             )
         }
+
         super.writeString(string, textPositions)
     }
 }
