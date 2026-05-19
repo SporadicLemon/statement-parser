@@ -71,8 +71,8 @@ fun App(
                 detectedFormat = format
                 result =
                     if (format == StatementFormat.PDF) {
-                        onParsePdf?.invoke(bytes, selectedBank?.displayName) 
-                            ?: parser.parsePdf(bytes, bankHint = selectedBank?.displayName)
+                        onParsePdf?.invoke(bytes, selectedBank?.displayName)
+                            ?: parser.parsePdf(bytes)
                     } else {
                         parser.parse(bytes.decodeToString(), format)
                     }
