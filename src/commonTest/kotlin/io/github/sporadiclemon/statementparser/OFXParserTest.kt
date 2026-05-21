@@ -3,8 +3,6 @@ package io.github.sporadiclemon.statementparser
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class OFXParserTest {
@@ -100,7 +98,7 @@ class OFXParserTest {
     @Test
     fun `returns accountInfo when BANKID and ACCTID present`() {
         val result = parser.parse(validOfx).getOrThrow()
-        val info = assertNotNull(result.accountInfo)
+        val info = (result.accountInfoResult as AccountInfoResult.Found).info
         assertEquals("123456", info.institutionName)
         assertEquals("87654321", info.accountNumber)
     }
@@ -108,7 +106,7 @@ class OFXParserTest {
     @Test
     fun `returns null accountInfo when account block absent`() {
         val result = parser.parse(ofxMissingAccount).getOrThrow()
-        assertNull(result.accountInfo)
+        assertTrue(result.accountInfoResult is AccountInfoResult.NotAvailable)
     }
 
     @Test

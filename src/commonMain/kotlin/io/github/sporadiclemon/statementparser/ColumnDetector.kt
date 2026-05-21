@@ -5,12 +5,9 @@ class ColumnDetector {
     fun detect(fragments: List<TextFragment>, profile: PdfBankProfile): ColumnLayout? {
         val rows = groupByRow(fragments)
 
-        // Find the row containing all column header keywords
+        // Find the row containing all column header phrases
         val headerRow = rows.firstOrNull { row ->
-            profile.columnHeaders.values.all { header ->
-                val firstWord = header.split(" ").first()
-                row.any { it.text.startsWith(firstWord, ignoreCase = true) }
-            }
+            profile.columnHeaders.values.all { header -> findPhraseX(row, header) != null }
         } ?: return null
 
         val headerY = headerRow.minOf { it.y }
@@ -19,10 +16,7 @@ class ColumnDetector {
         // Map each ColumnRole to the x-position of its header fragment
         val centers = mutableMapOf<ColumnRole, Float>()
         profile.columnHeaders.forEach { (role, header) ->
-            val firstWord = header.split(" ").first()
-            val fragment = headerRow.firstOrNull { it.text.startsWith(firstWord, ignoreCase = true) }
-                ?: return null
-            centers[role] = fragment.x
+            centers[role] = findPhraseX(headerRow, header) ?: return null
         }
 
         val sortedEntries = centers.entries.sortedBy { it.value }
@@ -35,6 +29,22 @@ class ColumnDetector {
         }
 
         return ColumnLayout(headerY = headerY, headerPage = headerPage, columns = boundaries)
+    }
+
+    // Finds the x-position of a multi-word phrase in a row of fragments.
+    // Uses bidirectional prefix matching so "Paym" matches "Payment" (and vice-versa),
+    // and consecutive words like ["Paid","out"] are distinguished from ["Paid","in"].
+    private fun findPhraseX(row: List<TextFragment>, phrase: String): Float? {
+        val words = phrase.trim().split(" ").filter { it.isNotEmpty() }
+        val sorted = row.sortedBy { it.x }
+        for (i in 0..sorted.size - words.size) {
+            if (words.indices.all { j ->
+                val fText = sorted[i + j].text
+                fText.startsWith(words[j], ignoreCase = true) ||
+                    words[j].startsWith(fText, ignoreCase = true)
+            }) return sorted[i].x
+        }
+        return null
     }
 
     internal fun groupByRow(fragments: List<TextFragment>): List<List<TextFragment>> {

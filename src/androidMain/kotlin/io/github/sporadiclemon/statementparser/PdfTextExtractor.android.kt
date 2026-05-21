@@ -6,6 +6,15 @@ import com.tom_roush.pdfbox.text.PDFTextStripper
 import com.tom_roush.pdfbox.text.TextPosition
 
 actual class PdfTextExtractor actual constructor() {
+    actual fun extractText(bytes: ByteArray): String {
+        val doc = PDDocument.load(bytes)
+        return try {
+            PDFTextStripper().getText(doc)
+        } finally {
+            doc.close()
+        }
+    }
+
     actual fun extract(bytes: ByteArray): List<TextFragment> {
         val doc = PDDocument.load(bytes)
         return try {

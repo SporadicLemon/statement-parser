@@ -41,5 +41,19 @@ object PdfBankProfiles {
         dateIncludesYear = true,
     )
 
-    val all: List<PdfBankProfile> get() = listOf(NATWEST, MONZO)
+    val HSBC = PdfBankProfile(
+        bank = Bank.HSBC,
+        detectionKeywords = listOf("HSBC"),
+        columnHeaders = mapOf(
+            ColumnRole.DATE        to "Date",
+            ColumnRole.DESCRIPTION to "Payment",
+            ColumnRole.AMOUNT_OUT  to "Paid out",
+            ColumnRole.AMOUNT_IN   to "Paid in",
+            ColumnRole.BALANCE     to "Balance",
+        ),
+        dateFormat = "dd MMM yy",
+        dateIncludesYear = true,
+    )
+
+    val all: List<PdfBankProfile> get() = listOf(NATWEST, MONZO, HSBC)
 }

@@ -6,6 +6,20 @@ import org.apache.pdfbox.text.PDFTextStripper
 import org.apache.pdfbox.text.TextPosition
 
 actual class PdfTextExtractor actual constructor() {
+    actual fun extractText(bytes: ByteArray): String {
+        if (bytes.isEmpty()) return ""
+        val doc = try {
+            Loader.loadPDF(bytes)
+        } catch (_: java.io.IOException) {
+            return ""
+        }
+        return try {
+            PDFTextStripper().getText(doc)
+        } finally {
+            doc.close()
+        }
+    }
+
     actual fun extract(bytes: ByteArray): List<TextFragment> {
         if (bytes.isEmpty()) return emptyList()
         val doc = try {

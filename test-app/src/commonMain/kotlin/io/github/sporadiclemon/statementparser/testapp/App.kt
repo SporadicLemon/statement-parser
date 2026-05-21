@@ -45,14 +45,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.sporadiclemon.statementparser.Bank
 import io.github.sporadiclemon.statementparser.ParsedStatement
+import io.github.sporadiclemon.statementparser.PdfBankProfiles
 import io.github.sporadiclemon.statementparser.StatementFormat
 import io.github.sporadiclemon.statementparser.StatementParser
 
 @Suppress("ktlint:standard:function-naming")
 @Composable
-fun App(
-    onParsePdf: ((ByteArray, String?) -> Result<ParsedStatement>)? = null
-) {
+fun App() {
     MaterialTheme(colors = lightColors()) {
         val parser = remember { StatementParser() }
         val profiledBanks = remember { parser.getProfiledBanks() }
@@ -71,8 +70,8 @@ fun App(
                 detectedFormat = format
                 result =
                     if (format == StatementFormat.PDF) {
-                        onParsePdf?.invoke(bytes, selectedBank?.displayName)
-                            ?: parser.parsePdf(bytes)
+                        val hint = PdfBankProfiles.all.find { it.bank == selectedBank }
+                        parser.parsePdf(bytes, hint)
                     } else {
                         parser.parse(bytes.decodeToString(), format)
                     }

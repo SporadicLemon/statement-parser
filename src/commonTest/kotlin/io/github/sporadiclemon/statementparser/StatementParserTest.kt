@@ -2,7 +2,6 @@ package io.github.sporadiclemon.statementparser
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -47,7 +46,7 @@ class StatementParserTest {
         val result = parser.parse(csv, StatementFormat.CSV).getOrThrow()
         assertEquals(1, result.transactions.size)
         assertEquals(Bank.STARLING, result.detectedBank)
-        assertNull(result.accountInfo)
+        assertTrue(result.accountInfoResult is AccountInfoResult.NotAvailable)
     }
 
     @Test
@@ -55,7 +54,7 @@ class StatementParserTest {
         val csv = "Date,Merchant,Total\n15/01/2024,Coffee,-3.50"
         val result = parser.parse(csv, StatementFormat.CSV).getOrThrow()
         assertNull(result.detectedBank)
-        assertNull(result.accountInfo)
+        assertTrue(result.accountInfoResult is AccountInfoResult.NotAvailable)
     }
 
     @Test
@@ -66,7 +65,7 @@ class StatementParserTest {
             <STMTTRN><DTPOSTED>20240115</DTPOSTED><TRNAMT>-10.00</TRNAMT><NAME>Coffee</NAME></STMTTRN>
             </BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>"""
         val result = parser.parse(ofx, StatementFormat.OFX).getOrThrow()
-        assertNotNull(result.accountInfo)
+        assertTrue(result.accountInfoResult is AccountInfoResult.Found)
         assertEquals(1, result.transactions.size)
     }
 

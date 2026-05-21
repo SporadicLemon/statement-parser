@@ -13,6 +13,22 @@ import platform.PDFKit.PDFDocument
 
 actual class PdfTextExtractor actual constructor() {
     @OptIn(ExperimentalForeignApi::class)
+    actual fun extractText(bytes: ByteArray): String {
+        val nsData = bytes.usePinned { pinned ->
+            NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong())
+        }
+        val document = PDFDocument(nsData) ?: return ""
+        val result = StringBuilder()
+        for (i in 0 until document.pageCount().toInt()) {
+            document.pageAtIndex(i.toULong())?.string?.let {
+                result.append(it)
+                result.append("\n")
+            }
+        }
+        return result.toString()
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
     actual fun extract(bytes: ByteArray): List<TextFragment> {
         val nsData = bytes.usePinned { pinned ->
             NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong())

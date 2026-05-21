@@ -26,6 +26,6 @@ class PdfBankProfileTest {
 
     @Test
     fun `all profiles are in the all list`() {
-        assertEquals(2, PdfBankProfiles.all.size)
+        assertEquals(3, PdfBankProfiles.all.size)
     }
 }

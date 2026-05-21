@@ -13,7 +13,7 @@ class StatementParser {
      * Returns a list of banks that have pre-defined CSV profiles.
      */
     fun getProfiledBanks(): List<Bank> =
-        CsvBankProfiles.all.map { it.bank }.distinct()
+        (CsvBankProfiles.all.map { it.bank } + PdfBankProfiles.all.map { it.bank }).distinct()
 
     /**
      * Detects the format of a statement file based on its name and content.
@@ -59,15 +59,16 @@ class StatementParser {
      * Parses a PDF bank statement using the coordinate-based pipeline.
      *
      * @param bytes The raw bytes of the PDF file.
+     * @param hintProfile An optional [PdfBankProfile] to check first, skipping the full profile scan.
      * @return A [Result] containing the [ParsedStatement].
      */
-    fun parsePdf(bytes: ByteArray): Result<ParsedStatement> = runCatching {
+    fun parsePdf(bytes: ByteArray, hintProfile: PdfBankProfile? = null): Result<ParsedStatement> = runCatching {
         if (bytes.isEmpty()) throw IllegalArgumentException("PDF bytes must not be empty")
 
         val fragments = PdfTextExtractor().extract(bytes)
         if (fragments.isEmpty()) throw IllegalStateException("No text extracted from PDF")
 
-        val profile = BankDetector().detect(fragments)
+        val profile = BankDetector().detect(fragments, hintProfile)
             ?: throw IllegalArgumentException("Unrecognised bank — no matching PDF profile found")
 
         val year = if (!profile.dateIncludesYear) extractStatementYear(fragments) else null
@@ -79,8 +80,11 @@ class StatementParser {
 
         ParsedStatement(
             transactions = transactions,
-            accountInfo = extractAccountInfo(fragments, profile),
+            accountInfoResult = extractAccountInfo(fragments, profile)?.let { AccountInfoResult.Found(it) } 
+                ?: AccountInfoResult.NotAvailable(AccountInfoUnavailableReason.MissingFromFile),
             detectedBank = profile.bank,
+            suggestedMapping = null,
+            rawHeaders = null,
         )
     }
 
@@ -108,8 +112,10 @@ class StatementParser {
         val transactions = csvParser.parse(content, resolvedMapping).getOrThrow()
         ParsedStatement(
             transactions = transactions,
-            accountInfo = null,
+            accountInfoResult = AccountInfoResult.NotAvailable(AccountInfoUnavailableReason.CsvFormat),
             detectedBank = bank?.bank,
+            suggestedMapping = if (bank == null) resolvedMapping else null,
+            rawHeaders = if (bank == null) headers else null,
         )
     }
 

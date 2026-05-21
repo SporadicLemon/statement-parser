@@ -17,8 +17,11 @@ class OFXParser {
 
             ParsedStatement(
                 transactions = transactions,
-                accountInfo = accountInfo,
+                accountInfoResult = accountInfo?.let { AccountInfoResult.Found(it) } 
+                    ?: AccountInfoResult.NotAvailable(AccountInfoUnavailableReason.MissingFromFile),
                 detectedBank = null,
+                suggestedMapping = null,
+                rawHeaders = null,
             )
         }
 

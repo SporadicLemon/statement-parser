@@ -5,7 +5,6 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class NatWestPdfIntegrationTest {
@@ -25,8 +24,8 @@ class NatWestPdfIntegrationTest {
         assertEquals(Bank.NATWEST, statement.detectedBank)
 
         // Account info
-        assertNotNull(statement.accountInfo)
-        assertEquals("84318767", statement.accountInfo!!.accountNumber)
+        val accountInfo = (statement.accountInfoResult as AccountInfoResult.Found).info
+        assertEquals("84318767", accountInfo.accountNumber)
 
         // Transaction count: 14 transactions across all pages of the statement
         assertEquals(14, statement.transactions.size)
