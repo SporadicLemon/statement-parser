@@ -75,7 +75,11 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
                 if (row.description.isNotBlank()) pendingDescriptions.add(row.description)
 
                 if (hasAmount) {
-                    val amount = resolveAmount(row, profile.creditMarkerSuffix)
+                    val amount = if (profile.creditMarkerOnOwnLine && profile.creditMarkerSuffix != null) {
+                        resolveAmountWithMarkerOnNextRow(row, rows.getOrNull(rowIndex + 1), profile.creditMarkerSuffix)
+                    } else {
+                        resolveAmount(row, profile.creditMarkerSuffix)
+                    }
                     val balance = row.balance?.clean()?.toDoubleOrNull()
                     if (amount != null) {
                         val tx = ParsedTransaction(
@@ -164,6 +168,22 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
         }
 
         return transactions
+    }
+
+    /**
+     * Resolves a bare AMOUNT cell whose credit marker, when present, is the next table row
+     * rather than a suffix on this one (see [PdfBankProfile.creditMarkerOnOwnLine]). The marker
+     * row carries nothing else - no date, no amount of its own - so it is never mistaken for the
+     * start of a transaction: the caller's own pendingDate is already null by the time the main
+     * loop reaches it, so it passes over harmlessly once its sign has been read here.
+     */
+    private fun resolveAmountWithMarkerOnNextRow(row: RawTableRow, next: RawTableRow?, creditMarker: String): Double? {
+        val magnitude = row.amount?.clean()?.toDoubleOrNull() ?: return null
+        val isMarked = next != null &&
+            next.date == null &&
+            next.amountIn == null && next.amountOut == null && next.amount == null &&
+            next.description.trim().equals(creditMarker, ignoreCase = true)
+        return if (isMarked) magnitude else -magnitude
     }
 
     private fun resolveAmount(row: RawTableRow, creditMarker: String?): Double? = when {

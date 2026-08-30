@@ -44,6 +44,20 @@ object DateParser {
                     if (day == null || month == null || shortYear == null) null
                     else LocalDate(year = 2000 + shortYear, month = month, day = day)
                 }
+                // Month name first, no leading zero on the day and no year - American Express
+                // prints "Jul 27", "Aug 2", "Aug 10". Only the first two tokens are read: on a
+                // statement with a second (process) date column, that column's header sits close
+                // enough to the midpoint between the transaction-date and description anchors
+                // that its month name - never its day, which is further right - leaks into this
+                // same cell as a third token. Reading just the first two keeps the transaction
+                // date and drops the leak instead of failing the whole parse.
+                "MMM d" -> {
+                    val parts = text.trim().split(" ")
+                    val month = if (parts.size >= 2) MONTHS[parts[0].lowercase()] else null
+                    val day = if (parts.size >= 2) parts[1].toIntOrNull() else null
+                    if (day == null || month == null) null
+                    else LocalDate(year = yearHint ?: currentYear(), month = month, day = day)
+                }
                 else -> null
             }
         } catch (_: Exception) {
