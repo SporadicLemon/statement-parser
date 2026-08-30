@@ -49,24 +49,24 @@ class ColumnDetector(private val logger: ((String) -> Unit)? = null) {
         val headers = profile.columnHeaders.entries.toList()
         // Linked, not plain hash: ColumnLayout.columns is public API and its iteration
         // order must not vary between runs.
-        val centers = LinkedHashMap<ColumnRole, Float>(headers.size)
+        val anchors = LinkedHashMap<ColumnRole, Float>(headers.size)
 
         var bestRow: MutableList<TextFragment>? = null
         var bestMatches = 0
         val headerRow = rows.firstOrNull { row ->
-            row.sortBy { it.x } // findPhraseX matches consecutive fragments, so needs x order
-            centers.clear()
+            row.sortBy { it.x } // findPhrase matches consecutive fragments, so needs x order
+            anchors.clear()
             val matched = headers.count { (role, header) ->
-                val x = findPhraseX(row, header)
-                if (x != null) centers[role] = x
-                x != null
+                val bounds = findPhrase(row, header)
+                if (bounds != null) anchors[role] = anchorOf(role, bounds)
+                bounds != null
             }
             if (matched > bestMatches) {
                 bestMatches = matched
                 bestRow = row
             }
             matched == headers.size
-        } ?: retryAcrossNearbyRows(rows, bestRow, bestMatches, headers, centers)
+        } ?: retryAcrossNearbyRows(rows, bestRow, bestMatches, headers, anchors)
 
         if (headerRow == null) {
             logger?.invoke("[ColumnDetector] header row not found; searched for: ${profile.columnHeaders.values}")
@@ -76,20 +76,38 @@ class ColumnDetector(private val logger: ((String) -> Unit)? = null) {
         val headerY = headerRow.minOf { it.y }
         val headerPage = headerRow.first().page
         logger?.invoke("[ColumnDetector] header row: page=$headerPage y=$headerY fragments=${headerRow.map { "\"${it.text}\"@${it.x.toInt()}" }}")
-        centers.forEach { (role, x) -> logger?.invoke("[ColumnDetector] $role ← \"${profile.columnHeaders[role]}\" @ ${x.toInt()}") }
+        anchors.forEach { (role, a) ->
+            val edge = if (role in AMOUNT_ROLES) "right" else "left"
+            logger?.invoke("[ColumnDetector] $role ← \"${profile.columnHeaders[role]}\" $edge edge @ ${a.toInt()}")
+        }
 
-        // Each column owns the x-band running to the midpoint between it and its neighbours.
-        val sortedEntries = centers.entries.sortedBy { it.value }
+        // Each column owns the x-band running to the midpoint between its anchor and its
+        // neighbours'. Because text and amount anchors sit on the edge their own cells align to,
+        // the midpoints fall in the gutters between columns rather than inside one of them.
+        val sortedEntries = anchors.entries.sortedBy { it.value }
         val boundaries = LinkedHashMap<ColumnRole, ClosedRange<Float>>(sortedEntries.size)
-        sortedEntries.forEachIndexed { i, (role, centerX) ->
-            val left = if (i == 0) 0f else (sortedEntries[i - 1].value + centerX) / 2f
+        sortedEntries.forEachIndexed { i, (role, anchor) ->
+            val left = if (i == 0) 0f else (sortedEntries[i - 1].value + anchor) / 2f
             val right = if (i == sortedEntries.lastIndex) Float.MAX_VALUE
-                        else (centerX + sortedEntries[i + 1].value) / 2f
+                        else (anchor + sortedEntries[i + 1].value) / 2f
             boundaries[role] = left..right
         }
 
         return ColumnLayout(headerY = headerY, headerPage = headerPage, columns = boundaries)
     }
+
+    /**
+     * The x-coordinate a column's band is centred on.
+     *
+     * Text columns are left-aligned, so their heading's left edge marks where their cells begin.
+     * Amount columns are right-aligned, so their cells end where the heading ends and start
+     * further right the shorter the figure - a NatWest "Paid In(£)" heading begins 40pt left of
+     * "Withdrawn(£)", yet "7.00" beneath it begins to the right of that heading's neighbour.
+     * Anchoring an amount column on its heading's right edge measures it from the edge its own
+     * figures line up on, so a short figure stays inside its column.
+     */
+    private fun anchorOf(role: ColumnRole, bounds: PhraseBounds): Float =
+        if (role in AMOUNT_ROLES) bounds.right else bounds.left
 
     /**
      * Some statements set one column heading on its own line - an HSBC credit card puts "Amount"
@@ -105,7 +123,7 @@ class ColumnDetector(private val logger: ((String) -> Unit)? = null) {
         bestRow: MutableList<TextFragment>?,
         bestMatches: Int,
         headers: List<Map.Entry<ColumnRole, String>>,
-        centers: MutableMap<ColumnRole, Float>,
+        anchors: MutableMap<ColumnRole, Float>,
     ): MutableList<TextFragment>? {
         if (bestRow == null || bestMatches * 2 < headers.size) return null
         val anchorY = bestRow.minOf { it.y }
@@ -116,21 +134,28 @@ class ColumnDetector(private val logger: ((String) -> Unit)? = null) {
             .sortedBy { it.x }
             .toMutableList()
 
-        centers.clear()
+        anchors.clear()
         val all = headers.all { (role, header) ->
-            val x = findPhraseX(widened, header)
-            if (x != null) centers[role] = x
-            x != null
+            val bounds = findPhrase(widened, header)
+            if (bounds != null) anchors[role] = anchorOf(role, bounds)
+            bounds != null
         }
         if (!all) return null
         logger?.invoke("[ColumnDetector] header spans rows within ${HEADER_ROW_SLACK}pt of y=$anchorY")
         return widened
     }
 
-    // Finds the x-position of a multi-word phrase in a row of fragments (already x-sorted).
+    /**
+     * Where a matched header phrase sits: the left edge of its first word and the right edge of
+     * its last. A phrase spans several fragments ("Paid" + "In(£)"), so the two are not the same
+     * fragment and neither edge can be derived from the other.
+     */
+    private class PhraseBounds(val left: Float, val right: Float)
+
+    // Finds a multi-word phrase in a row of fragments (already x-sorted).
     // Uses bidirectional prefix matching so "Paym" matches "Payment" (and vice-versa),
     // and consecutive words like ["Paid","out"] are distinguished from ["Paid","in"].
-    private fun findPhraseX(row: List<TextFragment>, phrase: String): Float? {
+    private fun findPhrase(row: List<TextFragment>, phrase: String): PhraseBounds? {
         val words = phrase.trim().split(' ').filter { it.isNotEmpty() }
         if (words.isEmpty()) return null
         for (i in 0..row.size - words.size) {
@@ -143,7 +168,7 @@ class ColumnDetector(private val logger: ((String) -> Unit)? = null) {
                     break
                 }
             }
-            if (matched) return row[i].x
+            if (matched) return PhraseBounds(left = row[i].x, right = row[i + words.lastIndex].right)
         }
         return null
     }

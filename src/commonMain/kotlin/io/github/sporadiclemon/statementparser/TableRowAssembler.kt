@@ -10,9 +10,18 @@ package io.github.sporadiclemon.statementparser
  */
 private val NUMERIC_AMOUNT = Regex("""^[-+]?[£$€]?-?\d[\d,]*\.\d{2}\s?(CR|DR)?$""", RegexOption.IGNORE_CASE)
 
-private val AMOUNT_ROLES = setOf(
-    ColumnRole.AMOUNT_IN, ColumnRole.AMOUNT_OUT, ColumnRole.AMOUNT, ColumnRole.BALANCE,
-)
+/**
+ * One column's x-band, plus which edge of a fragment decides whether it falls inside.
+ *
+ * A text column is left-aligned, so its cells all begin at the same x and the fragment's left
+ * edge places it. An amount column is right-aligned, so its cells all *end* at the same x while
+ * a short figure begins well to the right of a long one - far enough right, on a NatWest
+ * statement, to cross into the next column. Its right edge is what places it.
+ */
+private class ColumnBand(val role: ColumnRole, val range: ClosedRange<Float>, val byRightEdge: Boolean) {
+    fun contains(fragment: TextFragment): Boolean =
+        (if (byRightEdge) fragment.right else fragment.x) in range
+}
 
 class TableRowAssembler(private val logger: ((String) -> Unit)? = null) {
 
@@ -25,8 +34,12 @@ class TableRowAssembler(private val logger: ((String) -> Unit)? = null) {
         val rows = groupFragmentsByRow(relevant)
         logger?.invoke("[TableRowAssembler] ${rows.size} candidate rows")
 
-        // Flatten the layout once: an x-band per role, tested in ColumnRole declaration order.
-        val bands = ColumnRole.entries.mapNotNull { role -> layout.columns[role]?.let { role to it } }
+        // Flatten the layout once: an x-band per role, tested in ColumnRole declaration order,
+        // which puts the text columns first so description text that overhangs an amount column
+        // still resolves to DESCRIPTION.
+        val bands = ColumnRole.entries.mapNotNull { role ->
+            layout.columns[role]?.let { ColumnBand(role, it, byRightEdge = role in AMOUNT_ROLES) }
+        }
 
         val roleCount = ColumnRole.entries.size
         // Reused across rows; each slot holds the fragment texts assigned to that role, in x order.
@@ -40,7 +53,7 @@ class TableRowAssembler(private val logger: ((String) -> Unit)? = null) {
             var minY = Float.MAX_VALUE
             for (frag in rowFragments) {
                 if (frag.y < minY) minY = frag.y
-                val role = bands.firstOrNull { (_, range) -> frag.x in range }?.first ?: continue
+                val role = bands.firstOrNull { it.contains(frag) }?.role ?: continue
                 // A non-numeric value sitting in an amount column is overflowed description text.
                 val effectiveRole =
                     if (role in AMOUNT_ROLES && !NUMERIC_AMOUNT.matches(frag.text.trim())) ColumnRole.DESCRIPTION
