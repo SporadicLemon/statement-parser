@@ -35,7 +35,7 @@ class ParsedStatementResultTest {
     }
 
     @Test
-    fun `from a Result with no transactions is NoTransactionsFound, not Success`() {
+    fun `from a Result with no transactions is NoTransactionsFound not Success`() {
         val result = ParsedStatementResult.from(Result.success(statement(emptyList())))
         assertIs<ParsedStatementResult.NoTransactionsFound>(result)
         assertTrue(result.statement.transactions.isEmpty())
@@ -61,7 +61,7 @@ class ParsedStatementResultTest {
     // --- isSuccess / isFailure ---
 
     @Test
-    fun `isSuccess is true for Success and NoTransactionsFound, false for Failure`() {
+    fun `isSuccess is true for Success and NoTransactionsFound false for Failure`() {
         assertTrue(ParsedStatementResult.Success(statement(listOf(oneTransaction))).isSuccess)
         assertTrue(ParsedStatementResult.NoTransactionsFound(statement(emptyList())).isSuccess)
         assertFalse(ParsedStatementResult.Failure(StatementParseError.UnrecognisedPdfBank).isSuccess)
@@ -131,7 +131,7 @@ class ParsedStatementResultTest {
     }
 
     @Test
-    fun `toResult collapses NoTransactionsFound into Result success, matching pre-existing behaviour`() {
+    fun `toResult collapses NoTransactionsFound into Result success matching pre-existing behaviour`() {
         // This is the compatibility guarantee for parse()/parsePdf(): a statement that parses to
         // zero transactions must keep succeeding for existing callers, exactly as it always has -
         // only parseDetailed()/parsePdfDetailed() surface the distinction.

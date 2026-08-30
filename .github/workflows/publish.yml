@@ -23,7 +23,7 @@ jobs:
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: konan-${{ runner.os }}-
       - name: Publish to GitHub Packages
-        run: ./gradlew :publishAllPublicationsToGitHubPackagesRepository
+        run: ./gradlew :publishAllPublicationsToGitHubPackagesRepository :statement-parser-datastore:publishAllPublicationsToGitHubPackagesRepository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}

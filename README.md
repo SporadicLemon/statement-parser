@@ -38,6 +38,28 @@ dependencies {
 }
 ```
 
+### Optional: persisting a custom ColumnMapping
+
+If you let a user confirm a `ColumnMapping` for a CSV export from an unrecognised bank and
+want to remember it, add the separate `statement-parser-datastore` module:
+
+```kotlin
+dependencies {
+    implementation("io.github.sporadiclemon:statement-parser:0.0.1")
+    implementation("io.github.sporadiclemon:statement-parser-datastore:0.0.1")
+}
+```
+
+This is a separate artifact - not a transitive dependency of the core module - so an app that
+never needs to remember a custom mapping does not pull in AndroidX DataStore, okio, or
+coroutines just to use `StatementParser`.
+
+```kotlin
+val store = ColumnMappingStore(dataStore) // your app's DataStore<Preferences>
+store.save("MyBank", mapping)
+val remembered: ColumnMapping? = store.get("MyBank").first()
+```
+
 ## Usage
 
 ```kotlin

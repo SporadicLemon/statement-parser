@@ -1,10 +1,12 @@
+// Optional add-on: DataStore-backed persistence for a ColumnMapping the user has already
+// confirmed for an unrecognised bank's CSV. Split out from the core statement-parser module so
+// that a consumer who never touches this - the large majority, since most statements are
+// auto-detected - does not pull DataStore, okio, and coroutines into their app for a class they
+// never call.
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.mavenPublish)
-    alias(libs.plugins.androidApplication) apply false
-    alias(libs.plugins.composeMultiplatform) apply false
-    alias(libs.plugins.composeCompiler) apply false
 }
 
 group = "io.github.sporadiclemon"
@@ -14,7 +16,6 @@ kotlin {
     jvmToolchain(17)
 
     compilerOptions {
-        // expect/actual classes are still flagged Beta; the warning is noise on every compile.
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
@@ -32,55 +33,38 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            // Appears in this library's own public signatures - LocalDate on ParsedTransaction -
-            // so it must be `api`. Declared as `implementation` it would be omitted from the
-            // published compile-time metadata and consumers couldn't resolve the type they're
-            // handed. Coroutines and DataStore moved out with ColumnMappingStore into the
-            // optional :statement-parser-datastore module - see that module's build.gradle.kts.
-            api(libs.kotlinx.datetime)
+            // ColumnMapping, from the core module, appears in this module's own public
+            // signatures (ColumnMappingStore.save/get) - api, not implementation, so it resolves
+            // for a consumer of the published artifact. Coroutines and DataStore are api for the
+            // same reason: Flow and DataStore<Preferences> are part of this module's public API.
+            api(project(":"))
+            api(libs.kotlinx.coroutines.core)
+            api(libs.datastore.preferences.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-        }
-        androidMain.dependencies {
-            implementation(libs.pdfbox.android)
-        }
-        jvmMain.dependencies {
-            implementation(libs.pdfbox)
-        }
-        getByName("androidInstrumentedTest") {
-            dependencies {
-                implementation(libs.kotlin.test)
-                implementation(libs.androidx.test.runner)
-                implementation(libs.androidx.test.ext.junit)
-            }
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
 
 android {
-    namespace = "io.github.sporadiclemon.statementparser"
+    namespace = "io.github.sporadiclemon.statementparser.datastore"
     compileSdk = 37
     defaultConfig {
         minSdk = 28
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 }
 
 mavenPublishing {
-    // The vanniktech plugin signs with an in-memory PGP key read from the properties
-    // signingInMemoryKey / signingInMemoryKeyId / signingInMemoryKeyPassword - not from a
-    // property named "signingKey". Gating on the wrong name meant signAllPublications() ran
-    // with no key configured, which fails every signing task rather than skipping them.
     if (providers.gradleProperty("signingInMemoryKey").isPresent ||
         providers.environmentVariable("ORG_GRADLE_PROJECT_signingInMemoryKey").isPresent
     ) {
         signAllPublications()
     }
-    // Removed coordinates() call to avoid "final and cannot be changed" error
     pom {
-        name.set("statement-parser")
-        description.set("Kotlin Multiplatform library for parsing CSV and OFX/QFX bank statements on-device.")
+        name.set("statement-parser-datastore")
+        description.set("Optional DataStore-backed persistence for statement-parser's ColumnMapping.")
         url.set("https://github.com/sporadiclemon/statement-parser")
         licenses {
             license {

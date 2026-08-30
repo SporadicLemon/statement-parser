@@ -120,7 +120,7 @@ class StatementParserTest {
     }
 
     @Test
-    fun `legacy parse also fails on an ambiguous CSV bank match, not just parseDetailed`() {
+    fun `legacy parse also fails on an ambiguous CSV bank match not just parseDetailed`() {
         // This is a deliberate behaviour change: previously detectBank silently picked the first
         // matching profile and parsed with its (possibly wrong) column positions. Failing loudly
         // is worth a previously-succeeding call now failing, since the alternative is parsing
@@ -137,7 +137,7 @@ class StatementParserTest {
     }
 
     @Test
-    fun `parseDetailed on PDF format returns a specific, named error`() {
+    fun `parseDetailed on PDF format returns a specific named error`() {
         val result = parser.parseDetailed("irrelevant", StatementFormat.PDF)
         val failure = assertIs<ParsedStatementResult.Failure>(result)
         assertIs<StatementParseError.WrongParseFunctionForPdf>(failure.error)

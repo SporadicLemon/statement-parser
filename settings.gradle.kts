@@ -1,6 +1,7 @@
 rootProject.name = "statement-parser"
 
 include(":test-app")
+include(":statement-parser-datastore")
 
 pluginManagement {
     repositories {
