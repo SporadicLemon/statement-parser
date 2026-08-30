@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -34,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,11 +50,15 @@ import io.github.sporadiclemon.statementparser.ParsedStatement
 import io.github.sporadiclemon.statementparser.PdfBankProfiles
 import io.github.sporadiclemon.statementparser.StatementFormat
 import io.github.sporadiclemon.statementparser.StatementParser
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Suppress("ktlint:standard:function-naming")
 @Composable
 fun App() {
-    MaterialTheme(colors = lightColors()) {
+    val colors = remember { lightColors() }
+    MaterialTheme(colors = colors) {
         val parser = remember { StatementParser() }
         val profiledBanks = remember { parser.getProfiledBanks() }
         var selectedBank by remember { mutableStateOf<Bank?>(null) }
@@ -60,6 +66,8 @@ fun App() {
         var result by remember { mutableStateOf<Result<ParsedStatement>?>(null) }
         var fileName by remember { mutableStateOf("") }
         var detectedFormat by remember { mutableStateOf<StatementFormat?>(null) }
+        var parsing by remember { mutableStateOf(false) }
+        val scope = rememberCoroutineScope()
 
         FilePicker(
             show = showFilePicker,
@@ -68,13 +76,21 @@ fun App() {
                 fileName = name
                 val format = parser.detectFormat(name, "")
                 detectedFormat = format
-                result =
-                    if (format == StatementFormat.PDF) {
-                        val hint = PdfBankProfiles.all.find { it.bank == selectedBank }
-                        parser.parsePdf(bytes, hint)
-                    } else {
-                        parser.parse(bytes.decodeToString(), format)
+                val hint = PdfBankProfiles.all.find { it.bank == selectedBank }
+                parsing = true
+                // The picker delivers on the UI thread; PDFBox on a multi-page statement takes
+                // long enough there to stall the frame loop (and ANR on Android).
+                scope.launch {
+                    val parsed = withContext(Dispatchers.Default) {
+                        if (format == StatementFormat.PDF) {
+                            parser.parsePdf(bytes, hint)
+                        } else {
+                            parser.parse(bytes.decodeToString(), format)
+                        }
                     }
+                    result = parsed
+                    parsing = false
+                }
             },
             onDismiss = { showFilePicker = false },
         )
@@ -135,7 +151,17 @@ fun App() {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    result?.let { res ->
+                    if (parsing) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Parsing $fileName…", color = Color.Gray)
+                        }
+                    } else result?.let { res ->
                         res
                             .onSuccess { statement ->
                                 SummarySection(
