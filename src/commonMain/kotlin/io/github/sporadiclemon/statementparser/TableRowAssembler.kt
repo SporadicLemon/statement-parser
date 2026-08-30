@@ -1,6 +1,14 @@
 package io.github.sporadiclemon.statementparser
 
-private val NUMERIC_AMOUNT = Regex("""^-?\d[\d,]*\.\d{2}$""")
+/**
+ * A table cell holding a money figure.
+ *
+ * Statements differ in how they dress the number: a currency symbol (Starling prints "£80.00"
+ * in its IN/OUT columns), a trailing credit marker (HSBC credit cards print "10.00CR"), or a
+ * bare figure (NatWest, Monzo). All three are the same thing - a value in an amount column -
+ * and must classify as one, or the figure is mistaken for description text.
+ */
+private val NUMERIC_AMOUNT = Regex("""^[-+]?[£$€]?-?\d[\d,]*\.\d{2}\s?(CR|DR)?$""", RegexOption.IGNORE_CASE)
 
 private val AMOUNT_ROLES = setOf(
     ColumnRole.AMOUNT_IN, ColumnRole.AMOUNT_OUT, ColumnRole.AMOUNT, ColumnRole.BALANCE,

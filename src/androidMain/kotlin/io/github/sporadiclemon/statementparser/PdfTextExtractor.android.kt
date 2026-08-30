@@ -61,17 +61,7 @@ private class CoordinateStripper : PDFTextStripper() {
             val ch = string[i]
             if (ch.isWhitespace()) {
                 if (wordStart >= 0 && wordChars.isNotEmpty()) {
-                    if (wordStart < textPositions.size) {
-                        val pos = textPositions[wordStart]
-                        fragments.add(
-                            TextFragment(
-                                text = wordChars.toString(),
-                                x = pos.xDirAdj,
-                                y = pos.yDirAdj,
-                                page = currentPage - 1,
-                            )
-                        )
-                    }
+                    addWord(wordChars.toString(), wordStart, i, textPositions)
                     wordChars.clear()
                     wordStart = -1
                 }
@@ -80,18 +70,27 @@ private class CoordinateStripper : PDFTextStripper() {
                 wordChars.append(ch)
             }
         }
-        if (wordStart >= 0 && wordStart < textPositions.size && wordChars.isNotEmpty()) {
-            val pos = textPositions[wordStart]
-            fragments.add(
-                TextFragment(
-                    text = wordChars.toString(),
-                    x = pos.xDirAdj,
-                    y = pos.yDirAdj,
-                    page = currentPage - 1,
-                )
-            )
+        if (wordStart >= 0 && wordChars.isNotEmpty()) {
+            addWord(wordChars.toString(), wordStart, string.length, textPositions)
         }
 
         super.writeString(string, textPositions)
+    }
+
+    // [start, end) index the string; textPositions is parallel to it, so the word runs from the
+    // left edge of its first glyph to the right edge of its last.
+    private fun addWord(text: String, start: Int, end: Int, textPositions: List<TextPosition>) {
+        if (start >= textPositions.size) return
+        val first = textPositions[start]
+        val last = textPositions[(end - 1).coerceAtMost(textPositions.size - 1)]
+        fragments.add(
+            TextFragment(
+                text = text,
+                x = first.xDirAdj,
+                y = first.yDirAdj,
+                page = currentPage - 1,
+                width = (last.xDirAdj + last.widthDirAdj - first.xDirAdj).coerceAtLeast(0f),
+            )
+        )
     }
 }

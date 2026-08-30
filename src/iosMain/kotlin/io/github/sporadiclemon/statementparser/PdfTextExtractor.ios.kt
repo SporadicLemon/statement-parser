@@ -76,17 +76,21 @@ actual class PdfTextExtractor actual constructor() {
     }
 
     // The word is already delimited by [start, end), so it is cut from the page string directly
-    // rather than accumulated a character at a time, and the bounds rect is placed into native
-    // memory once instead of once per axis.
+    // rather than accumulated a character at a time, and each bounds rect is placed into native
+    // memory once instead of once per axis. The word spans from the left edge of its first
+    // character to the right edge of its last.
     @OptIn(ExperimentalForeignApi::class)
     private fun fragment(page: PDFPage, pageString: String, start: Int, end: Int, pageIdx: Int): TextFragment {
-        val bounds = page.characterBoundsAtIndex(start.toLong())
-        val (x, y) = bounds.useContents { origin.x.toFloat() to origin.y.toFloat() }
+        val (x, y) = page.characterBoundsAtIndex(start.toLong())
+            .useContents { origin.x.toFloat() to origin.y.toFloat() }
+        val lastRight = page.characterBoundsAtIndex((end - 1).toLong())
+            .useContents { (origin.x + size.width).toFloat() }
         return TextFragment(
             text = pageString.substring(start, end),
             x = x,
             y = y,
             page = pageIdx,
+            width = (lastRight - x).coerceAtLeast(0f),
         )
     }
 

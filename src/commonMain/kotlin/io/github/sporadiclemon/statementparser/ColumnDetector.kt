@@ -5,6 +5,9 @@ import kotlin.math.abs
 /** Fragments closer together than this on the y-axis belong to the same visual row. */
 private const val ROW_Y_TOLERANCE = 2f
 
+/** How far above or below the heading a stray column label may sit and still count as part of it. */
+private const val HEADER_ROW_SLACK = 14f
+
 /**
  * Groups fragments into visual rows, ordered by page then y.
  *
@@ -47,15 +50,24 @@ class ColumnDetector(private val logger: ((String) -> Unit)? = null) {
         // Linked, not plain hash: ColumnLayout.columns is public API and its iteration
         // order must not vary between runs.
         val centers = LinkedHashMap<ColumnRole, Float>(headers.size)
+
+        var bestRow: MutableList<TextFragment>? = null
+        var bestMatches = 0
         val headerRow = rows.firstOrNull { row ->
             row.sortBy { it.x } // findPhraseX matches consecutive fragments, so needs x order
             centers.clear()
-            headers.all { (role, header) ->
+            val matched = headers.count { (role, header) ->
                 val x = findPhraseX(row, header)
                 if (x != null) centers[role] = x
                 x != null
             }
-        }
+            if (matched > bestMatches) {
+                bestMatches = matched
+                bestRow = row
+            }
+            matched == headers.size
+        } ?: retryAcrossNearbyRows(rows, bestRow, bestMatches, headers, centers)
+
         if (headerRow == null) {
             logger?.invoke("[ColumnDetector] header row not found; searched for: ${profile.columnHeaders.values}")
             return null
@@ -77,6 +89,42 @@ class ColumnDetector(private val logger: ((String) -> Unit)? = null) {
         }
 
         return ColumnLayout(headerY = headerY, headerPage = headerPage, columns = boundaries)
+    }
+
+    /**
+     * Some statements set one column heading on its own line - an HSBC credit card puts "Amount"
+     * a few points above "Received By Us / Transaction Date / Details" - so no single row holds
+     * every phrase. When the best row found most of them, retry it widened to the rows sitting
+     * within [HEADER_ROW_SLACK] of it on the same page.
+     *
+     * Only reached when the strict single-row search failed, so a statement whose heading really
+     * is one row behaves exactly as before.
+     */
+    private fun retryAcrossNearbyRows(
+        rows: List<MutableList<TextFragment>>,
+        bestRow: MutableList<TextFragment>?,
+        bestMatches: Int,
+        headers: List<Map.Entry<ColumnRole, String>>,
+        centers: MutableMap<ColumnRole, Float>,
+    ): MutableList<TextFragment>? {
+        if (bestRow == null || bestMatches * 2 < headers.size) return null
+        val anchorY = bestRow.minOf { it.y }
+        val page = bestRow.first().page
+        val widened = rows
+            .filter { it.first().page == page && abs(it.minOf { f -> f.y } - anchorY) <= HEADER_ROW_SLACK }
+            .flatten()
+            .sortedBy { it.x }
+            .toMutableList()
+
+        centers.clear()
+        val all = headers.all { (role, header) ->
+            val x = findPhraseX(widened, header)
+            if (x != null) centers[role] = x
+            x != null
+        }
+        if (!all) return null
+        logger?.invoke("[ColumnDetector] header spans rows within ${HEADER_ROW_SLACK}pt of y=$anchorY")
+        return widened
     }
 
     // Finds the x-position of a multi-word phrase in a row of fragments (already x-sorted).
