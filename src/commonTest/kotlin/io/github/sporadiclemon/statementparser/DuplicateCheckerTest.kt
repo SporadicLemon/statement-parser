@@ -85,4 +85,38 @@ class DuplicateCheckerTest {
         assertEquals(1, result.newTransactions.size)
         assertTrue(result.duplicates.isEmpty())
     }
+
+    // A real American Express statement carries two separate £15.00 DOJO*THE WEIR BAR charges on
+    // the same day - a genuine coincidence, not a data error. The checker must not treat set
+    // membership as "already recorded": it has to count how many of each key were already
+    // recorded, and match at most that many of the freshly parsed ones.
+    @Test
+    fun `a second genuinely identical transaction is not treated as a duplicate of the first`() {
+        val result = checker.check(
+            existing = listOf(existing("DOJO*THE WEIR BAR", -15.00)),
+            parsed = listOf(parsed("DOJO*THE WEIR BAR", -15.00), parsed("DOJO*THE WEIR BAR", -15.00)),
+        )
+        assertEquals(1, result.duplicates.size, "only the one already-recorded charge is a duplicate")
+        assertEquals(1, result.newTransactions.size, "the second, equally real charge is new")
+    }
+
+    @Test
+    fun `three identical transactions against two already recorded leaves exactly one new`() {
+        val result = checker.check(
+            existing = listOf(existing("Coffee", -3.00), existing("Coffee", -3.00)),
+            parsed = listOf(parsed("Coffee", -3.00), parsed("Coffee", -3.00), parsed("Coffee", -3.00)),
+        )
+        assertEquals(2, result.duplicates.size)
+        assertEquals(1, result.newTransactions.size)
+    }
+
+    @Test
+    fun `more recorded than parsed still matches every parsed transaction`() {
+        val result = checker.check(
+            existing = listOf(existing("Coffee", -3.00), existing("Coffee", -3.00), existing("Coffee", -3.00)),
+            parsed = listOf(parsed("Coffee", -3.00)),
+        )
+        assertEquals(1, result.duplicates.size)
+        assertTrue(result.newTransactions.isEmpty())
+    }
 }
