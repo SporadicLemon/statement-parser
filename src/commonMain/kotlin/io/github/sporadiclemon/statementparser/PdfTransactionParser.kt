@@ -210,13 +210,15 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
     }
 
     // Strips thousands separators and the currency symbol in one pass, avoiding the
-    // intermediate strings a trim + two replaces would allocate per cell.
+    // intermediate strings a trim + two replaces would allocate per cell. All three symbols the
+    // amount-cell pattern in TableRowAssembler accepts must be handled here too - stripping only
+    // "£" would classify a "$"/"€" cell as a numeric amount but then fail to parse its value.
     private fun String.clean(): String {
         var needsStrip = false
-        for (c in this) if (c == ',' || c == '£') { needsStrip = true; break }
+        for (c in this) if (c == ',' || c == '£' || c == '$' || c == '€') { needsStrip = true; break }
         if (!needsStrip) return trim()
         val sb = StringBuilder(length)
-        for (c in this) if (c != ',' && c != '£') sb.append(c)
+        for (c in this) if (c != ',' && c != '£' && c != '$' && c != '€') sb.append(c)
         return sb.toString().trim()
     }
 }
