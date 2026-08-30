@@ -75,7 +75,7 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
                 if (row.description.isNotBlank()) pendingDescriptions.add(row.description)
 
                 if (hasAmount) {
-                    val amount = resolveAmount(row)
+                    val amount = resolveAmount(row, profile.creditMarkerSuffix)
                     val balance = row.balance?.clean()?.toDoubleOrNull()
                     if (amount != null) {
                         val tx = ParsedTransaction(
@@ -150,7 +150,7 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
                 k++
             }
 
-            val amount = resolveAmount(row) ?: return@forEachIndexed
+            val amount = resolveAmount(row, profile.creditMarkerSuffix) ?: return@forEachIndexed
             val balance = row.balance?.clean()?.toDoubleOrNull()
 
             val tx = ParsedTransaction(
@@ -166,11 +166,27 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
         return transactions
     }
 
-    private fun resolveAmount(row: RawTableRow): Double? = when {
+    private fun resolveAmount(row: RawTableRow, creditMarker: String?): Double? = when {
         row.amountIn  != null -> row.amountIn.clean().toDoubleOrNull()
         row.amountOut != null -> row.amountOut.clean().toDoubleOrNull()?.let { -it }
-        row.amount    != null -> row.amount.clean().toDoubleOrNull()
+        row.amount    != null -> signedAmount(row.amount, creditMarker)
         else -> null
+    }
+
+    /**
+     * Applies [PdfBankProfile.creditMarkerSuffix] to a single-amount-column cell: with a marker
+     * set, the suffix means money in and its absence means money out, so an HSBC credit card's
+     * "10.00" is a purchase (-10.00) and "10.00CR" a payment or refund (+10.00). Without a
+     * marker the figure keeps whatever sign it was printed with.
+     */
+    private fun signedAmount(cell: String, creditMarker: String?): Double? {
+        val text = cell.clean()
+        if (creditMarker == null) return text.toDoubleOrNull()
+        return if (text.endsWith(creditMarker, ignoreCase = true)) {
+            text.dropLast(creditMarker.length).trim().toDoubleOrNull()
+        } else {
+            text.toDoubleOrNull()?.let { -it }
+        }
     }
 
     // Strips thousands separators and the currency symbol in one pass, avoiding the
