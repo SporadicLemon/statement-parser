@@ -44,6 +44,7 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
                 continue
             }
 
+            var startsWithDate = false
             if (row.date != null) {
                 val dateText = row.date.replace(TRAILING_YEAR, "").trim()
                 val parsed = DateParser.parse(
@@ -52,10 +53,17 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
                     yearHint = statementYear,
                 )
                 logger?.invoke("[PdfTransactionParser] row[$rowIndex] date parse: \"$dateText\" format=${profile.dateFormat} yearHint=$statementYear → $parsed")
-                if (parsed != null) currentDate = parsed
+                if (parsed != null) {
+                    currentDate = parsed
+                    startsWithDate = true
+                }
             }
 
-            val isNewTransaction = row.date != null ||
+            // A cell in the date column only opens a transaction if it is genuinely a date.
+            // Prose below the table lands in that column too - a NatWest statement's small print
+            // about transaction fees put "For charging periods..." there - and treating that as
+            // the start of a transaction let a stray figure from the same prose become one.
+            val isNewTransaction = startsWithDate ||
                 profile.transactionTypePrefixes.any { row.description.startsWith(it, ignoreCase = true) }
 
             if (isNewTransaction) {
