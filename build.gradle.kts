@@ -13,6 +13,11 @@ version = libs.versions.statementParser.get()
 kotlin {
     jvmToolchain(17)
 
+    compilerOptions {
+        // expect/actual classes are still flagged Beta; the warning is noise on every compile.
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     androidTarget {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
@@ -45,7 +50,7 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.pdfbox)
         }
-        val androidInstrumentedTest by getting {
+        getByName("androidInstrumentedTest") {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation(libs.androidx.test.runner)
@@ -66,7 +71,7 @@ android {
 
 mavenPublishing {
     if (providers.gradleProperty("signingKey").isPresent ||
-        System.getenv("ORG_GRADLE_PROJECT_signingKey") != null
+        providers.environmentVariable("ORG_GRADLE_PROJECT_signingKey").isPresent
     ) {
         signAllPublications()
     }
@@ -99,8 +104,10 @@ publishing {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/sporadiclemon/statement-parser")
             credentials {
-                username = providers.gradleProperty("gpr.user").getOrElse(System.getenv("GITHUB_ACTOR") ?: "")
-                password = providers.gradleProperty("gpr.key").getOrElse(System.getenv("GITHUB_TOKEN") ?: "")
+                username = providers.gradleProperty("gpr.user")
+                    .orElse(providers.environmentVariable("GITHUB_ACTOR")).getOrElse("")
+                password = providers.gradleProperty("gpr.key")
+                    .orElse(providers.environmentVariable("GITHUB_TOKEN")).getOrElse("")
             }
         }
     }
