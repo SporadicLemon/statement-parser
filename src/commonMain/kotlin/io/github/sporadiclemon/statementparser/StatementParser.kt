@@ -2,12 +2,18 @@ package io.github.sporadiclemon.statementparser
 
 /**
  * The main entry point for parsing bank statements in various formats.
+ *
+ * @param debugLogger Optional callback that receives verbose diagnostic messages at each stage of
+ *   PDF parsing. Pass `::println` for quick debugging, or a logcat wrapper on Android. Null (default)
+ *   produces no output.
  */
-class StatementParser {
+class StatementParser(private val debugLogger: ((String) -> Unit)? = null) {
 
     private val formatDetector = FormatDetector()
     private val csvParser = CsvParser()
     private val ofxParser = OFXParser()
+
+    private fun log(msg: String) = debugLogger?.invoke(msg)
 
     /**
      * Returns a list of banks that have pre-defined CSV profiles.
@@ -66,21 +72,30 @@ class StatementParser {
         if (bytes.isEmpty()) throw IllegalArgumentException("PDF bytes must not be empty")
 
         val fragments = PdfTextExtractor().extract(bytes)
+        log("[PDF] extracted ${fragments.size} fragments across ${fragments.maxOfOrNull { it.page }.let { if (it != null) it + 1 else 0 }} page(s)")
         if (fragments.isEmpty()) throw IllegalStateException("No text extracted from PDF")
 
-        val profile = BankDetector().detect(fragments, hintProfile)
+        val profile = BankDetector(debugLogger).detect(fragments, hintProfile)
             ?: throw IllegalArgumentException("Unrecognised bank — no matching PDF profile found")
+        log("[PDF] detected bank: ${profile.bank.displayName}")
 
         val year = if (!profile.dateIncludesYear) extractStatementYear(fragments) else null
+        log("[PDF] statement year: $year (dateIncludesYear=${profile.dateIncludesYear})")
 
-        val layout = ColumnDetector().detect(fragments, profile)
+        val layout = ColumnDetector(debugLogger).detect(fragments, profile)
             ?: throw IllegalStateException("Could not detect table columns in PDF")
-        val rows = TableRowAssembler().assemble(fragments, layout)
-        val transactions = PdfTransactionParser().parse(rows, profile, statementYear = year)
+        log("[PDF] column layout: header on page ${layout.headerPage} y=${layout.headerY}")
+        layout.columns.forEach { (role, range) -> log("[PDF]   $role → x=[${range.start}, ${range.endInclusive}]") }
+
+        val rows = TableRowAssembler(debugLogger).assemble(fragments, layout)
+        log("[PDF] assembled ${rows.size} rows")
+
+        val transactions = PdfTransactionParser(debugLogger).parse(rows, profile, statementYear = year)
+        log("[PDF] parsed ${transactions.size} transactions")
 
         ParsedStatement(
             transactions = transactions,
-            accountInfoResult = extractAccountInfo(fragments, profile)?.let { AccountInfoResult.Found(it) } 
+            accountInfoResult = extractAccountInfo(fragments, profile)?.let { AccountInfoResult.Found(it) }
                 ?: AccountInfoResult.NotAvailable(AccountInfoUnavailableReason.MissingFromFile),
             detectedBank = profile.bank,
             suggestedMapping = null,

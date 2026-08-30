@@ -7,6 +7,8 @@ data class PdfBankProfile(
     val dateFormat: String,
     val dateIncludesYear: Boolean,
     val transactionTypePrefixes: List<String> = emptyList(),
+    /** When true, description rows may appear before and after the date+amount row. */
+    val descriptionSurroundsAmountRow: Boolean = false,
 )
 
 object PdfBankProfiles {
@@ -33,12 +35,13 @@ object PdfBankProfiles {
         detectionKeywords = listOf("Monzo"),
         columnHeaders = mapOf(
             ColumnRole.DATE        to "Date",
-            ColumnRole.DESCRIPTION to "Description (GBP)",
-            ColumnRole.AMOUNT      to "Amount (GBP)",
+            ColumnRole.DESCRIPTION to "Description",
+            ColumnRole.AMOUNT      to "Amount",
             ColumnRole.BALANCE     to "Balance",
         ),
         dateFormat = "dd/MM/yyyy",
         dateIncludesYear = true,
+        descriptionSurroundsAmountRow = true,
     )
 
     val HSBC = PdfBankProfile(

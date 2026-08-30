@@ -36,6 +36,14 @@ object DateParser {
                     if (day == null || month == null || year == null) null
                     else LocalDate(year = year, monthNumber = month, dayOfMonth = day)
                 }
+                "dd MMM yy" -> {
+                    val parts = text.trim().split(" ")
+                    val day = if (parts.size == 3) parts[0].toIntOrNull() else null
+                    val month = if (parts.size == 3) MONTHS[parts[1].lowercase()] else null
+                    val shortYear = if (parts.size == 3) parts[2].toIntOrNull() else null
+                    if (day == null || month == null || shortYear == null) null
+                    else LocalDate(year = 2000 + shortYear, monthNumber = month, dayOfMonth = day)
+                }
                 else -> null
             }
         } catch (_: Exception) {

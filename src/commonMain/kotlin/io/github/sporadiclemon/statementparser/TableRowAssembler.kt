@@ -1,20 +1,22 @@
 package io.github.sporadiclemon.statementparser
 
-class TableRowAssembler {
+class TableRowAssembler(private val logger: ((String) -> Unit)? = null) {
 
     fun assemble(fragments: List<TextFragment>, layout: ColumnLayout): List<RawTableRow> {
         val relevant = fragments.filter { f ->
             if (f.page == layout.headerPage) f.y > layout.headerY else true
         }
+        logger?.invoke("[TableRowAssembler] ${relevant.size} fragments after header filter (of ${fragments.size} total)")
 
         val rows = ColumnDetector().groupByRow(relevant)
+        logger?.invoke("[TableRowAssembler] ${rows.size} candidate rows")
 
         val amountRoles = setOf(ColumnRole.AMOUNT_IN, ColumnRole.AMOUNT_OUT, ColumnRole.AMOUNT, ColumnRole.BALANCE)
-        val numericRe = Regex("""^\d[\d,]*\.\d{2}$""")
+        val numericRe = Regex("""^-?\d[\d,]*\.\d{2}$""")
 
         data class Classified(val fragment: TextFragment, val role: ColumnRole)
 
-        return rows.mapNotNull { rowFragments ->
+        val result = rows.mapNotNull { rowFragments ->
             val classified = rowFragments.mapNotNull { frag ->
                 val role = ColumnRole.entries.firstOrNull { r ->
                     layout.columns[r]?.let { range -> frag.x in range } == true
@@ -34,7 +36,7 @@ class TableRowAssembler {
                     .takeIf { it.isNotBlank() }
 
             val description = columnText(ColumnRole.DESCRIPTION) ?: return@mapNotNull null
-            RawTableRow(
+            val row = RawTableRow(
                 date        = columnText(ColumnRole.DATE),
                 description = description,
                 amountIn    = columnText(ColumnRole.AMOUNT_IN),
@@ -43,6 +45,10 @@ class TableRowAssembler {
                 balance     = columnText(ColumnRole.BALANCE),
                 pageY       = rowFragments.minOf { it.y },
             )
+            logger?.invoke("[TableRowAssembler] row: date=${row.date} desc=\"${row.description}\" in=${row.amountIn} out=${row.amountOut} amt=${row.amount} bal=${row.balance}")
+            row
         }
+        logger?.invoke("[TableRowAssembler] ${result.size} rows with description (skipped ${rows.size - result.size})")
+        return result
     }
 }

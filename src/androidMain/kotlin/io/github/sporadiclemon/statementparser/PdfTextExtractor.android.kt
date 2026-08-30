@@ -44,15 +44,17 @@ private class CoordinateStripper : PDFTextStripper() {
             val ch = string[i]
             if (ch.isWhitespace()) {
                 if (wordStart >= 0 && wordChars.isNotBlank()) {
-                    val pos = textPositions[wordStart]
-                    fragments.add(
-                        TextFragment(
-                            text = wordChars.toString(),
-                            x = pos.xDirAdj,
-                            y = pos.yDirAdj,
-                            page = currentPage - 1,
+                    if (wordStart < textPositions.size) {
+                        val pos = textPositions[wordStart]
+                        fragments.add(
+                            TextFragment(
+                                text = wordChars.toString(),
+                                x = pos.xDirAdj,
+                                y = pos.yDirAdj,
+                                page = currentPage - 1,
+                            )
                         )
-                    )
+                    }
                     wordChars.clear()
                     wordStart = -1
                 }
@@ -61,7 +63,7 @@ private class CoordinateStripper : PDFTextStripper() {
                 wordChars.append(ch)
             }
         }
-        if (wordStart >= 0 && wordChars.isNotBlank()) {
+        if (wordStart >= 0 && wordStart < textPositions.size && wordChars.isNotBlank()) {
             val pos = textPositions[wordStart]
             fragments.add(
                 TextFragment(

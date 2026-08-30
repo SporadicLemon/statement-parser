@@ -1,22 +1,34 @@
 package io.github.sporadiclemon.statementparser
 
-class ColumnDetector {
+class ColumnDetector(private val logger: ((String) -> Unit)? = null) {
 
     fun detect(fragments: List<TextFragment>, profile: PdfBankProfile): ColumnLayout? {
         val rows = groupByRow(fragments)
+        logger?.invoke("[ColumnDetector] ${rows.size} rows from ${fragments.size} fragments")
 
         // Find the row containing all column header phrases
         val headerRow = rows.firstOrNull { row ->
             profile.columnHeaders.values.all { header -> findPhraseX(row, header) != null }
-        } ?: return null
+        }
+        if (headerRow == null) {
+            logger?.invoke("[ColumnDetector] header row not found; searched for: ${profile.columnHeaders.values}")
+            return null
+        }
 
         val headerY = headerRow.minOf { it.y }
         val headerPage = headerRow.first().page
+        logger?.invoke("[ColumnDetector] header row: page=$headerPage y=$headerY fragments=${headerRow.sortedBy { it.x }.map { "\"${it.text}\"@${it.x.toInt()}" }}")
 
         // Map each ColumnRole to the x-position of its header fragment
         val centers = mutableMapOf<ColumnRole, Float>()
         profile.columnHeaders.forEach { (role, header) ->
-            centers[role] = findPhraseX(headerRow, header) ?: return null
+            val x = findPhraseX(headerRow, header)
+            if (x == null) {
+                logger?.invoke("[ColumnDetector] could not find phrase \"$header\" for $role")
+                return null
+            }
+            logger?.invoke("[ColumnDetector] $role ← \"$header\" @ x=${x.toInt()}")
+            centers[role] = x
         }
 
         val sortedEntries = centers.entries.sortedBy { it.value }
