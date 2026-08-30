@@ -1,5 +1,11 @@
 package io.github.sporadiclemon.statementparser
 
+/** A four-digit year anywhere in the statement header, used when dates omit the year. */
+private val STATEMENT_YEAR = Regex("""\b(20\d{2})\b""")
+
+/** A UK eight-digit account number. */
+private val ACCOUNT_NUMBER = Regex("""\b(\d{8})\b""")
+
 /**
  * The main entry point for parsing bank statements in various formats.
  *
@@ -38,9 +44,9 @@ class StatementParser(private val debugLogger: ((String) -> Unit)? = null) {
      * @return The matching [CsvBankProfile], or null if none match.
      */
     fun detectBank(headers: List<String>): CsvBankProfile? {
-        val headerSet = headers.map { it.trim().lowercase() }.toSet()
+        val headerSet = headers.mapTo(HashSet(headers.size)) { it.trim().lowercase() }
         return CsvBankProfiles.all.firstOrNull { profile ->
-            profile.headerSignature.all { sig -> headerSet.contains(sig.lowercase()) }
+            CsvBankProfiles.lowercaseSignature(profile).all { sig -> sig in headerSet }
         }
     }
 
@@ -103,21 +109,20 @@ class StatementParser(private val debugLogger: ((String) -> Unit)? = null) {
         )
     }
 
-    private fun extractStatementYear(fragments: List<TextFragment>): Int? {
-        val yearRegex = Regex("""\b(20\d{2})\b""")
-        return fragments.filter { it.page == 0 }
-            .firstNotNullOfOrNull { yearRegex.find(it.text)?.groupValues?.get(1)?.toIntOrNull() }
-    }
+    private fun extractStatementYear(fragments: List<TextFragment>): Int? =
+        fragments.asSequence()
+            .filter { it.page == 0 }
+            .firstNotNullOfOrNull { STATEMENT_YEAR.find(it.text)?.groupValues?.get(1)?.toIntOrNull() }
 
     private fun extractAccountInfo(fragments: List<TextFragment>, profile: PdfBankProfile): ParsedAccountInfo? {
-        val acctRegex = Regex("""\b(\d{8})\b""")
-        val acctFragment = fragments.filter { it.page == 0 }.firstOrNull { acctRegex.containsMatchIn(it.text) }
-        return acctFragment?.let {
-            ParsedAccountInfo(
-                institutionName = profile.bank.displayName,
-                accountNumber = acctRegex.find(it.text)?.groupValues?.get(1),
-            )
-        }
+        val accountNumber = fragments.asSequence()
+            .filter { it.page == 0 }
+            .firstNotNullOfOrNull { ACCOUNT_NUMBER.find(it.text)?.groupValues?.get(1) }
+            ?: return null
+        return ParsedAccountInfo(
+            institutionName = profile.bank.displayName,
+            accountNumber = accountNumber,
+        )
     }
 
     private fun parseCsv(content: String, suppliedMapping: ColumnMapping?): Result<ParsedStatement> = runCatching {

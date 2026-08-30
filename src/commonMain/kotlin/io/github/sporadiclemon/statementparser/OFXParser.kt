@@ -2,6 +2,30 @@ package io.github.sporadiclemon.statementparser
 
 import kotlinx.datetime.LocalDate
 
+/**
+ * Tags this parser reads. Their patterns are compiled once at class-init rather than on every
+ * lookup — a statement with N transactions performs 4N tag lookups, and compiling a Regex per
+ * lookup dominated parsing cost.
+ */
+private val OFX_TAGS = listOf("BANKID", "ACCTID", "STMTTRN", "DTPOSTED", "TRNAMT", "NAME", "MEMO")
+
+private val XML_TAG_PATTERNS: Map<String, Regex> =
+    OFX_TAGS.associateWith { xmlPattern(it) }
+
+private val SGML_TAG_PATTERNS: Map<String, Regex> =
+    OFX_TAGS.associateWith { sgmlPattern(it) }
+
+private val XML_BLOCK_PATTERNS: Map<String, Regex> =
+    OFX_TAGS.associateWith { blockPattern(it) }
+
+private val OPEN_TAG_PATTERNS: Map<String, Regex> =
+    OFX_TAGS.associateWith { openTagPattern(it) }
+
+private fun xmlPattern(tag: String) = Regex("<$tag>([^<]+)</$tag>", RegexOption.IGNORE_CASE)
+private fun sgmlPattern(tag: String) = Regex("<$tag>([^\\r\\n<]+)", RegexOption.IGNORE_CASE)
+private fun blockPattern(tag: String) = Regex("<$tag>([\\s\\S]*?)</$tag>", RegexOption.IGNORE_CASE)
+private fun openTagPattern(tag: String) = Regex("<$tag>", RegexOption.IGNORE_CASE)
+
 class OFXParser {
     fun parse(content: String): Result<ParsedStatement> =
         runCatching {
@@ -40,8 +64,8 @@ class OFXParser {
             if (cleaned.length < 8) return null
             LocalDate(
                 year = cleaned.substring(0, 4).toInt(),
-                monthNumber = cleaned.substring(4, 6).toInt(),
-                dayOfMonth = cleaned.substring(6, 8).toInt(),
+                month = cleaned.substring(4, 6).toInt(),
+                day = cleaned.substring(6, 8).toInt(),
             )
         } catch (_: Exception) {
             null
@@ -49,17 +73,17 @@ class OFXParser {
     }
 
     private fun extractTag(content: String, tag: String): String? {
-        val xmlMatch = Regex("<$tag>([^<]+)</$tag>", RegexOption.IGNORE_CASE).find(content)
+        val xmlMatch = (XML_TAG_PATTERNS[tag] ?: xmlPattern(tag)).find(content)
         if (xmlMatch != null) return xmlMatch.groupValues[1].trim()
-        val sgmlMatch = Regex("<$tag>([^\\r\\n<]+)", RegexOption.IGNORE_CASE).find(content)
+        val sgmlMatch = (SGML_TAG_PATTERNS[tag] ?: sgmlPattern(tag)).find(content)
         return sgmlMatch?.groupValues?.get(1)?.trim()
     }
 
     private fun extractAllTags(content: String, tag: String): List<String> {
-        val xmlMatches = Regex("<$tag>([\\s\\S]*?)</$tag>", RegexOption.IGNORE_CASE)
+        val xmlMatches = (XML_BLOCK_PATTERNS[tag] ?: blockPattern(tag))
             .findAll(content).map { it.groupValues[1] }.toList()
         if (xmlMatches.isNotEmpty()) return xmlMatches
-        val parts = content.split(Regex("<$tag>", RegexOption.IGNORE_CASE))
+        val parts = content.split(OPEN_TAG_PATTERNS[tag] ?: openTagPattern(tag))
         return if (parts.size > 1) parts.drop(1) else emptyList()
     }
 }

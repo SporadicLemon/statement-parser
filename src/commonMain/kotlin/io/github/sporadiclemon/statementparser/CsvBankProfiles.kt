@@ -45,4 +45,14 @@ object CsvBankProfiles {
             mapping = ColumnMapping(dateIndex=0, dateFormat="dd/MM/yyyy", amountIndex=2, amountInIndex=null, amountOutIndex=null, descriptionIndex=1),
         ),
     )
+
+    /**
+     * Header signatures lowercased once at class-init, so detection does not re-lowercase
+     * every signature on every call.
+     */
+    private val lowercaseSignatures: Map<CsvBankProfile, Set<String>> =
+        all.associateWith { profile -> profile.headerSignature.mapTo(HashSet()) { it.lowercase() } }
+
+    internal fun lowercaseSignature(profile: CsvBankProfile): Set<String> =
+        lowercaseSignatures[profile] ?: profile.headerSignature.mapTo(HashSet()) { it.lowercase() }
 }

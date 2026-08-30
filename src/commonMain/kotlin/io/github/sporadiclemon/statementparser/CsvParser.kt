@@ -13,9 +13,20 @@ class CsvParser {
         mapping: ColumnMapping,
     ): Result<List<ParsedTransaction>> =
         runCatching {
-            val lines = content.lines().filter { it.isNotBlank() }
-            if (lines.size < 2) return@runCatching emptyList()
-            lines.drop(1).mapNotNull { line -> parseRow(line, mapping) }
+            // Single pass: filtering and dropping the header through the collection operators
+            // would copy the whole line list twice more on a statement of any size.
+            val lines = content.lines()
+            val transactions = ArrayList<ParsedTransaction>(lines.size)
+            var headerSeen = false
+            for (line in lines) {
+                if (line.isBlank()) continue
+                if (!headerSeen) {
+                    headerSeen = true
+                    continue
+                }
+                parseRow(line, mapping)?.let { transactions.add(it) }
+            }
+            transactions
         }
 
     private fun parseRow(
@@ -69,8 +80,12 @@ class CsvParser {
         try {
             when (format) {
                 "dd/MM/yyyy" -> {
-                    val parts = dateStr.split('/', '-', '.')
-                    if (parts.size == 3) {
+                    // Fixed-width dd/MM/yyyy with a consistent separator covers nearly every row
+                    // and is read straight off the string, so no parts list is allocated per row.
+                    val fixedWidth = dateStr.length == 10 &&
+                        !dateStr[2].isDigit() && dateStr[2] == dateStr[5]
+                    val parts = if (fixedWidth) null else dateStr.split('/', '-', '.')
+                    if (parts != null && parts.size == 3) {
                         LocalDate(year = parts[2].toInt(), month = parts[1].toInt(), day = parts[0].toInt())
                     } else {
                         LocalDate(
@@ -106,7 +121,28 @@ class CsvParser {
         }
 
     private fun parseCsvRow(line: String): List<String> {
-        val result = mutableListOf<String>()
+        // The overwhelming majority of statement rows contain no quoted fields; those can be
+        // cut straight out of the line rather than rebuilt a character at a time.
+        if (line.indexOf('"') < 0) return splitUnquoted(line)
+        return parseQuotedCsvRow(line)
+    }
+
+    private fun splitUnquoted(line: String): List<String> {
+        val result = ArrayList<String>()
+        var start = 0
+        while (true) {
+            val comma = line.indexOf(',', start)
+            if (comma < 0) {
+                result.add(line.substring(start))
+                return result
+            }
+            result.add(line.substring(start, comma))
+            start = comma + 1
+        }
+    }
+
+    private fun parseQuotedCsvRow(line: String): List<String> {
+        val result = ArrayList<String>()
         var inQuotes = false
         val current = StringBuilder()
         var i = 0

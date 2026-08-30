@@ -19,14 +19,14 @@ object DateParser {
                 "dd/MM/yyyy" -> {
                     val parts = text.trim().split('/')
                     if (parts.size != 3) null
-                    else LocalDate(year = parts[2].toInt(), monthNumber = parts[1].toInt(), dayOfMonth = parts[0].toInt())
+                    else LocalDate(year = parts[2].toInt(), month = parts[1].toInt(), day = parts[0].toInt())
                 }
                 "dd MMM" -> {
                     val parts = text.trim().split(" ")
                     val day = if (parts.size == 2) parts[0].toIntOrNull() else null
                     val month = if (parts.size == 2) MONTHS[parts[1].lowercase()] else null
                     if (day == null || month == null) null
-                    else LocalDate(year = yearHint ?: currentYear(), monthNumber = month, dayOfMonth = day)
+                    else LocalDate(year = yearHint ?: currentYear(), month = month, day = day)
                 }
                 "dd MMM yyyy" -> {
                     val parts = text.trim().split(" ")
@@ -34,7 +34,7 @@ object DateParser {
                     val month = if (parts.size == 3) MONTHS[parts[1].lowercase()] else null
                     val year = if (parts.size == 3) parts[2].toIntOrNull() else null
                     if (day == null || month == null || year == null) null
-                    else LocalDate(year = year, monthNumber = month, dayOfMonth = day)
+                    else LocalDate(year = year, month = month, day = day)
                 }
                 "dd MMM yy" -> {
                     val parts = text.trim().split(" ")
@@ -42,7 +42,7 @@ object DateParser {
                     val month = if (parts.size == 3) MONTHS[parts[1].lowercase()] else null
                     val shortYear = if (parts.size == 3) parts[2].toIntOrNull() else null
                     if (day == null || month == null || shortYear == null) null
-                    else LocalDate(year = 2000 + shortYear, monthNumber = month, dayOfMonth = day)
+                    else LocalDate(year = 2000 + shortYear, month = month, day = day)
                 }
                 else -> null
             }
