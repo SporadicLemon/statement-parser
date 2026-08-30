@@ -9,6 +9,15 @@ data class PdfBankProfile(
     val transactionTypePrefixes: List<String> = emptyList(),
     /** When true, description rows may appear before and after the date+amount row. */
     val descriptionSurroundsAmountRow: Boolean = false,
+    /**
+     * Suffix marking a figure in the single [ColumnRole.AMOUNT] column as money in, used by
+     * statements that carry the sign as a marker rather than a minus - a credit card prints
+     * "10.00" for a purchase and "10.00CR" for a payment or refund.
+     *
+     * When set, a cell ending with it parses positive with the suffix stripped and a cell
+     * without it parses negative. Null (the default) leaves the figure's own sign alone.
+     */
+    val creditMarkerSuffix: String? = null,
 )
 
 object PdfBankProfiles {
@@ -58,5 +67,37 @@ object PdfBankProfiles {
         dateIncludesYear = true,
     )
 
-    val all: List<PdfBankProfile> = listOf(NATWEST, MONZO, HSBC)
+    /**
+     * HSBC credit card. A different table from [HSBC]'s current account: two date columns
+     * ("Received By Us" and "Transaction Date"), no running balance, and one amount column
+     * whose credits carry a trailing "CR".
+     *
+     * The heading is split over two lines - "Amount" sits a couple of points above
+     * "Received By Us / Transaction Date / Details", which in turn sits below the
+     * "Your Transaction Details" title. [ColumnDetector] recovers it by widening the best
+     * matching row to its neighbours, so the phrases here have to be findable in the three
+     * lines merged and sorted by x, where "Your" and "Transaction" from the title interleave
+     * with the column labels. "Received" and "Details" survive that; "Received By Us" does not.
+     *
+     * "Details" then anchors the description at the title's "Details" (x≈156) rather than the
+     * column's own (x≈194), which is what keeps the posting date whole: the date band runs to
+     * the midpoint with the description anchor, so it takes "27 Jul 26" and stops short of the
+     * transaction date, which folds into the front of the description.
+     */
+    val HSBC_CREDIT_CARD = PdfBankProfile(
+        bank = Bank.HSBC,
+        detectionKeywords = listOf("Visa Card statement"),
+        columnHeaders = mapOf(
+            ColumnRole.DATE        to "Received",
+            ColumnRole.DESCRIPTION to "Details",
+            ColumnRole.AMOUNT      to "Amount",
+        ),
+        dateFormat = "dd MMM yy",
+        dateIncludesYear = true,
+        creditMarkerSuffix = "CR",
+    )
+
+    // HSBC_CREDIT_CARD comes before HSBC: detection takes the first profile whose keyword is on
+    // page 1, and a card statement says "HSBC" too.
+    val all: List<PdfBankProfile> = listOf(NATWEST, MONZO, HSBC_CREDIT_CARD, HSBC)
 }
