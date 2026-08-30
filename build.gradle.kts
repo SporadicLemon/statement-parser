@@ -70,8 +70,12 @@ android {
 }
 
 mavenPublishing {
-    if (providers.gradleProperty("signingKey").isPresent ||
-        providers.environmentVariable("ORG_GRADLE_PROJECT_signingKey").isPresent
+    // The vanniktech plugin signs with an in-memory PGP key read from the properties
+    // signingInMemoryKey / signingInMemoryKeyId / signingInMemoryKeyPassword - not from a
+    // property named "signingKey". Gating on the wrong name meant signAllPublications() ran
+    // with no key configured, which fails every signing task rather than skipping them.
+    if (providers.gradleProperty("signingInMemoryKey").isPresent ||
+        providers.environmentVariable("ORG_GRADLE_PROJECT_signingInMemoryKey").isPresent
     ) {
         signAllPublications()
     }
@@ -94,6 +98,8 @@ mavenPublishing {
         }
         scm {
             url.set("https://github.com/sporadiclemon/statement-parser")
+            connection.set("scm:git:https://github.com/sporadiclemon/statement-parser.git")
+            developerConnection.set("scm:git:ssh://git@github.com/sporadiclemon/statement-parser.git")
         }
     }
 }
