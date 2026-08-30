@@ -1,5 +1,11 @@
 package io.github.sporadiclemon.statementparser
 
+private val NUMERIC_AMOUNT = Regex("""^-?\d[\d,]*\.\d{2}$""")
+
+private val AMOUNT_ROLES = setOf(
+    ColumnRole.AMOUNT_IN, ColumnRole.AMOUNT_OUT, ColumnRole.AMOUNT, ColumnRole.BALANCE,
+)
+
 class TableRowAssembler(private val logger: ((String) -> Unit)? = null) {
 
     fun assemble(fragments: List<TextFragment>, layout: ColumnLayout): List<RawTableRow> {
@@ -8,47 +14,52 @@ class TableRowAssembler(private val logger: ((String) -> Unit)? = null) {
         }
         logger?.invoke("[TableRowAssembler] ${relevant.size} fragments after header filter (of ${fragments.size} total)")
 
-        val rows = ColumnDetector().groupByRow(relevant)
+        val rows = groupFragmentsByRow(relevant)
         logger?.invoke("[TableRowAssembler] ${rows.size} candidate rows")
 
-        val amountRoles = setOf(ColumnRole.AMOUNT_IN, ColumnRole.AMOUNT_OUT, ColumnRole.AMOUNT, ColumnRole.BALANCE)
-        val numericRe = Regex("""^-?\d[\d,]*\.\d{2}$""")
+        // Flatten the layout once: an x-band per role, tested in ColumnRole declaration order.
+        val bands = ColumnRole.entries.mapNotNull { role -> layout.columns[role]?.let { role to it } }
 
-        data class Classified(val fragment: TextFragment, val role: ColumnRole)
+        val roleCount = ColumnRole.entries.size
+        // Reused across rows; each slot holds the fragment texts assigned to that role, in x order.
+        val buckets = Array(roleCount) { mutableListOf<String>() }
 
-        val result = rows.mapNotNull { rowFragments ->
-            val classified = rowFragments.mapNotNull { frag ->
-                val role = ColumnRole.entries.firstOrNull { r ->
-                    layout.columns[r]?.let { range -> frag.x in range } == true
-                } ?: return@mapNotNull null
-                val effectiveRole = if (role in amountRoles && !numericRe.matches(frag.text.trim())) {
-                    ColumnRole.DESCRIPTION
-                } else {
-                    role
-                }
-                Classified(frag, effectiveRole)
+        val result = ArrayList<RawTableRow>(rows.size)
+        for (rowFragments in rows) {
+            rowFragments.sortBy { it.x } // column text is joined left-to-right
+            for (bucket in buckets) bucket.clear()
+
+            var minY = Float.MAX_VALUE
+            for (frag in rowFragments) {
+                if (frag.y < minY) minY = frag.y
+                val role = bands.firstOrNull { (_, range) -> frag.x in range }?.first ?: continue
+                // A non-numeric value sitting in an amount column is overflowed description text.
+                val effectiveRole =
+                    if (role in AMOUNT_ROLES && !NUMERIC_AMOUNT.matches(frag.text.trim())) ColumnRole.DESCRIPTION
+                    else role
+                buckets[effectiveRole.ordinal].add(frag.text)
             }
 
-            fun columnText(role: ColumnRole): String? =
-                classified.filter { it.role == role }
-                    .sortedBy { it.fragment.x }
-                    .joinToString(" ") { it.fragment.text }
-                    .takeIf { it.isNotBlank() }
-
-            val description = columnText(ColumnRole.DESCRIPTION) ?: return@mapNotNull null
+            val description = columnText(buckets, ColumnRole.DESCRIPTION) ?: continue
             val row = RawTableRow(
-                date        = columnText(ColumnRole.DATE),
+                date        = columnText(buckets, ColumnRole.DATE),
                 description = description,
-                amountIn    = columnText(ColumnRole.AMOUNT_IN),
-                amountOut   = columnText(ColumnRole.AMOUNT_OUT),
-                amount      = columnText(ColumnRole.AMOUNT),
-                balance     = columnText(ColumnRole.BALANCE),
-                pageY       = rowFragments.minOf { it.y },
+                amountIn    = columnText(buckets, ColumnRole.AMOUNT_IN),
+                amountOut   = columnText(buckets, ColumnRole.AMOUNT_OUT),
+                amount      = columnText(buckets, ColumnRole.AMOUNT),
+                balance     = columnText(buckets, ColumnRole.BALANCE),
+                pageY       = minY,
             )
             logger?.invoke("[TableRowAssembler] row: date=${row.date} desc=\"${row.description}\" in=${row.amountIn} out=${row.amountOut} amt=${row.amount} bal=${row.balance}")
-            row
+            result.add(row)
         }
+
         logger?.invoke("[TableRowAssembler] ${result.size} rows with description (skipped ${rows.size - result.size})")
         return result
     }
+
+    private fun columnText(buckets: Array<MutableList<String>>, role: ColumnRole): String? =
+        buckets[role.ordinal].takeIf { it.isNotEmpty() }
+            ?.joinToString(" ")
+            ?.takeIf { it.isNotBlank() }
 }

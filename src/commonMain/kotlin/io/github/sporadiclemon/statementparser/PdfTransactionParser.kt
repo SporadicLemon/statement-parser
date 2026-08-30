@@ -2,6 +2,12 @@ package io.github.sporadiclemon.statementparser
 
 import kotlinx.datetime.LocalDate
 
+/** Trailing year on a date cell ("12 Mar 2024"), stripped before format-specific parsing. */
+private val TRAILING_YEAR = Regex("""\s+\d{4}$""")
+
+/** How far, in points, a description-only row may sit from its amount row and still belong to it. */
+private const val DESCRIPTION_Y_PROXIMITY = 15f
+
 class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
 
     fun parse(
@@ -39,7 +45,7 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
             }
 
             if (row.date != null) {
-                val dateText = row.date.replace(Regex("""\s+\d{4}$"""), "").trim()
+                val dateText = row.date.replace(TRAILING_YEAR, "").trim()
                 val parsed = DateParser.parse(
                     text = dateText,
                     format = profile.dateFormat,
@@ -65,7 +71,7 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
                     val balance = row.balance?.clean()?.toDoubleOrNull()
                     if (amount != null) {
                         val tx = ParsedTransaction(
-                            date = pendingDate!!,
+                            date = pendingDate,
                             description = pendingDescriptions.joinToString(" ").trim(),
                             amount = amount,
                             runningBalance = balance,
@@ -85,13 +91,12 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
     }
 
     // Monzo-style: the date+amount row is the anchor; description rows appear on either side.
-    // Uses y-proximity (threshold 15pt) to associate description rows with their anchor.
+    // Uses y-proximity to associate description rows with their anchor.
     private fun parseAmountAnchor(
         rows: List<RawTableRow>,
         profile: PdfBankProfile,
         statementYear: Int?,
     ): List<ParsedTransaction> {
-        val threshold = 15f
         val transactions = mutableListOf<ParsedTransaction>()
 
         rows.forEachIndexed { i, row ->
@@ -100,7 +105,7 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
 
             if (!hasAmount || row.date == null) return@forEachIndexed
 
-            val dateText = row.date.replace(Regex("""\s+\d{4}$"""), "").trim()
+            val dateText = row.date.replace(TRAILING_YEAR, "").trim()
             val date = DateParser.parse(
                 text = dateText,
                 format = profile.dateFormat,
@@ -109,25 +114,28 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
             logger?.invoke("[PdfTransactionParser] row[$i] date parse: \"$dateText\" format=${profile.dateFormat} → $date")
             if (date == null) return@forEachIndexed
 
-            val descParts = mutableListOf<String>()
-            if (row.description.isNotBlank()) descParts.add(row.description)
-
-            // Walk backward: collect description-only rows within threshold of this anchor
+            // Walk backward: collect description-only rows within threshold of this anchor.
+            // Collected in reverse, then appended in reading order.
+            val preceding = mutableListOf<String>()
             var j = i - 1
             while (j >= 0) {
                 val prev = rows[j]
-                if (row.pageY - prev.pageY > threshold) break
+                if (row.pageY - prev.pageY > DESCRIPTION_Y_PROXIMITY) break
                 val prevHasAmount = prev.amountIn != null || prev.amountOut != null || prev.amount != null
                 if (prevHasAmount) break
-                if (prev.description.isNotBlank()) descParts.add(0, prev.description)
+                if (prev.description.isNotBlank()) preceding.add(prev.description)
                 j--
             }
+
+            val descParts = mutableListOf<String>()
+            for (idx in preceding.indices.reversed()) descParts.add(preceding[idx])
+            if (row.description.isNotBlank()) descParts.add(row.description)
 
             // Walk forward: collect description-only rows within threshold of this anchor
             var k = i + 1
             while (k < rows.size) {
                 val next = rows[k]
-                if (next.pageY - row.pageY > threshold) break
+                if (next.pageY - row.pageY > DESCRIPTION_Y_PROXIMITY) break
                 val nextHasAmount = next.amountIn != null || next.amountOut != null || next.amount != null
                 if (nextHasAmount) break
                 if (next.description.isNotBlank()) descParts.add(next.description)
@@ -157,5 +165,14 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
         else -> null
     }
 
-    private fun String.clean() = trim().replace(",", "").replace("£", "")
+    // Strips thousands separators and the currency symbol in one pass, avoiding the
+    // intermediate strings a trim + two replaces would allocate per cell.
+    private fun String.clean(): String {
+        var needsStrip = false
+        for (c in this) if (c == ',' || c == '£') { needsStrip = true; break }
+        if (!needsStrip) return trim()
+        val sb = StringBuilder(length)
+        for (c in this) if (c != ',' && c != '£') sb.append(c)
+        return sb.toString().trim()
+    }
 }

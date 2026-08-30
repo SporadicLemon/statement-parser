@@ -58,5 +58,5 @@ object PdfBankProfiles {
         dateIncludesYear = true,
     )
 
-    val all: List<PdfBankProfile> get() = listOf(NATWEST, MONZO, HSBC)
+    val all: List<PdfBankProfile> = listOf(NATWEST, MONZO, HSBC)
 }
