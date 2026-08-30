@@ -12,6 +12,17 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          # Matches toolchainVersion in gradle/gradle-daemon-jvm.properties, so Gradle does not
+          # provision a second JDK from foojay on every run.
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Cache Kotlin/Native toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: konan-${{ runner.os }}-
+      # ":allTests", not "allTests": the latter also configures and builds the whole
+      # test-app Compose application, which has no tests.
       - name: Run tests
-        run: ./gradlew allTests
+        run: ./gradlew :allTests
