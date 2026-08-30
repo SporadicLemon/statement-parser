@@ -25,7 +25,27 @@ class PdfBankProfileTest {
     }
 
     @Test
+    fun `Starling profile keys the balance column off the first half of its two-line heading`() {
+        val headers = PdfBankProfiles.STARLING.columnHeaders
+        assertEquals("Account", headers[ColumnRole.BALANCE])
+        // "Type", not "Transaction" - see StarlingPdfProfileTest for why.
+        assertEquals("Type", headers[ColumnRole.DESCRIPTION])
+    }
+
+    @Test
+    fun `Starling detection keywords are specific enough not to match a payee name`() {
+        assertEquals(
+            listOf("www.starlingbank.com", "Starling Bank Limited"),
+            PdfBankProfiles.STARLING.detectionKeywords,
+        )
+    }
+
+    @Test
     fun `all profiles are in the all list`() {
-        assertEquals(3, PdfBankProfiles.all.size)
+        assertEquals(4, PdfBankProfiles.all.size)
+        assertEquals(
+            listOf(Bank.NATWEST, Bank.MONZO, Bank.HSBC, Bank.STARLING),
+            PdfBankProfiles.all.map { it.bank },
+        )
     }
 }

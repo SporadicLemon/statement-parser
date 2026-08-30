@@ -72,12 +72,15 @@ result.getOrThrow().transactions.forEach {
 
 ### Supported PDF Banks
 
-| Bank     | Detection            |
-|----------|----------------------|
-| Monzo    | "Monzo Bank" in text |
-| Starling | "Starling Bank"      |
-| HSBC     | "HSBC"               |
-| Lloyds   | "Lloyds Bank"        |
+| Bank     | Detected by (first page text)                  |
+|----------|------------------------------------------------|
+| NatWest  | "NatWest", "National Westminster"              |
+| Monzo    | "Monzo"                                        |
+| HSBC     | "HSBC"                                         |
+| Starling | "www.starlingbank.com", "Starling Bank Limited" |
+
+Starling is matched on its page furniture rather than a bare "Starling", because the
+word turns up inside payee names on other banks' statements.
 
 ### Android Setup
 
