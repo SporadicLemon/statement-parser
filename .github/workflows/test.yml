@@ -22,7 +22,8 @@ jobs:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
           restore-keys: konan-${{ runner.os }}-
-      # ":allTests", not "allTests": the latter also configures and builds the whole
-      # test-app Compose application, which has no tests.
+      # Named modules, not "allTests": the latter also configures and builds the whole
+      # test-app Compose application, which has no tests. statement-parser-datastore is listed
+      # explicitly since a root-scoped ":allTests" does not reach into subprojects.
       - name: Run tests
-        run: ./gradlew :allTests
+        run: ./gradlew :allTests :statement-parser-datastore:allTests
