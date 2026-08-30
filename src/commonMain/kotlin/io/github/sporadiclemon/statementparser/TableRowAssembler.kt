@@ -61,13 +61,25 @@ class TableRowAssembler(private val logger: ((String) -> Unit)? = null) {
                 buckets[effectiveRole.ordinal].add(frag.text)
             }
 
-            val description = columnText(buckets, ColumnRole.DESCRIPTION) ?: continue
+            val description = columnText(buckets, ColumnRole.DESCRIPTION)
+            val amountIn = columnText(buckets, ColumnRole.AMOUNT_IN)
+            val amountOut = columnText(buckets, ColumnRole.AMOUNT_OUT)
+            val amount = columnText(buckets, ColumnRole.AMOUNT)
+
+            // A row carrying a figure counts even with no description of its own. Monzo prints a
+            // refund as three lines - the merchant, then the date/amount/balance line, then
+            // "This relates to a previous transaction" - so the line holding the money has an
+            // empty description column. Requiring one here discarded the whole transaction, and
+            // because the rows that split this way are the credits, the parsed statement came
+            // out biased as well as short.
+            if (description == null && amountIn == null && amountOut == null && amount == null) continue
+
             val row = RawTableRow(
                 date        = columnText(buckets, ColumnRole.DATE),
-                description = description,
-                amountIn    = columnText(buckets, ColumnRole.AMOUNT_IN),
-                amountOut   = columnText(buckets, ColumnRole.AMOUNT_OUT),
-                amount      = columnText(buckets, ColumnRole.AMOUNT),
+                description = description ?: "",
+                amountIn    = amountIn,
+                amountOut   = amountOut,
+                amount      = amount,
                 balance     = columnText(buckets, ColumnRole.BALANCE),
                 pageY       = minY,
             )
@@ -75,7 +87,7 @@ class TableRowAssembler(private val logger: ((String) -> Unit)? = null) {
             result.add(row)
         }
 
-        logger?.invoke("[TableRowAssembler] ${result.size} rows with description (skipped ${rows.size - result.size})")
+        logger?.invoke("[TableRowAssembler] ${result.size} rows kept (skipped ${rows.size - result.size} empty)")
         return result
     }
 

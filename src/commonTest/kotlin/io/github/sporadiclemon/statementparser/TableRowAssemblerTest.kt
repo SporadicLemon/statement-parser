@@ -94,13 +94,27 @@ class TableRowAssemblerTest {
     }
 
     @Test
-    fun `drops row when no fragment falls in description column`() {
+    fun `keeps a row that carries a figure but no description of its own`() {
         val fragments = listOf(
-            // x=440 falls in AMOUNT_OUT only — no description content
+            // x=440 falls in AMOUNT_OUT only — no description content.
+            // Monzo splits a refund across three lines and the middle one, holding the date,
+            // amount and balance, has an empty description column. Dropping it loses the
+            // transaction outright, so the row has to survive with an empty description.
             TextFragment("50.00", x = 440f, y = 200f, page = 0),
         )
         val rows = assembler.assemble(fragments, natwestLayout)
-        assertEquals(0, rows.size)
+        assertEquals(1, rows.size)
+        assertEquals("", rows[0].description)
+        assertEquals("50.00", rows[0].amountOut)
+    }
+
+    @Test
+    fun `drops a row with neither a description nor a figure`() {
+        val fragments = listOf(
+            // x=20 falls in DATE only — nothing else on the line
+            TextFragment("03", x = 20f, y = 200f, page = 0),
+        )
+        assertEquals(0, assembler.assemble(fragments, natwestLayout).size)
     }
 
     // Bands from a right-aligned NatWest-style heading: the amount columns run to the midpoints
