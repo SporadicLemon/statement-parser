@@ -1,14 +1,37 @@
 # statement-parser
 
-Kotlin Multiplatform library for parsing CSV and OFX/QFX bank statements on-device.
+Kotlin Multiplatform library for parsing CSV, OFX/QFX, and PDF bank statements on-device.
 
 ## Features
 
 - **Multiplatform:** Supports Android, iOS, JVM (Desktop/Server).
-- **Format Support:** Automatic detection and parsing of CSV and OFX/QFX.
-- **Bank Profiles:** Built-in profiles for major UK banks (Monzo, Starling, Lloyds, etc.).
+- **Format Support:** Automatic detection and parsing of CSV, OFX/QFX, and PDF.
+- **Bank Profiles:** Built-in profiles for major UK banks - see [Supported Banks](#supported-banks).
 - **Custom Mapping:** Flexibly map any CSV format to a standard transaction model.
 - **On-device:** All parsing happens locally; no financial data ever leaves the device.
+
+## Supported Banks
+
+| Bank | CSV | PDF |
+|------|:---:|:---:|
+| Monzo | ✅ | ✅ |
+| Starling | ✅ | ✅ |
+| NatWest | ✅ | ✅ |
+| HSBC | ✅ | ✅ (current account and credit card) |
+| American Express | — | ✅ |
+| Barclays | ✅ | — |
+| Lloyds | ✅ | — |
+| Santander | ✅ | — |
+
+CSV detection matches on column headers (see [`CsvBankProfiles`](src/commonMain/kotlin/io/github/sporadiclemon/statementparser/CsvBankProfiles.kt));
+PDF detection matches on first-page text - see [Supported PDF Banks](#supported-pdf-banks) below
+for exactly what each one looks for.
+
+> **On logos:** this table intentionally doesn't embed bank logos. They're trademarked (and
+> usually copyrighted) brand assets, and this project has no affiliation with any bank listed
+> here - hosting their marks alongside "supported" could read as an implied partnership that
+> doesn't exist. If you'd like logos here, the safe route is sourcing them yourself from each
+> bank's own press/media kit under that bank's brand guidelines.
 
 ## Installation
 
@@ -84,8 +107,8 @@ val format = parser.detectFormat("statement.pdf", "")
 
 // Parse a PDF statement
 val bytes = file.readBytes()
-val result = parser.parsePdf(bytes)                          // auto-detects bank
-val result = parser.parsePdf(bytes, bankHint = "Monzo")     // skip auto-detection
+val result = parser.parsePdf(bytes)                                    // auto-detects bank
+val result = parser.parsePdf(bytes, hintProfile = PdfBankProfiles.MONZO) // skip auto-detection
 
 result.getOrThrow().transactions.forEach {
     println("${it.date}: ${it.description} (${it.amount})")
@@ -122,7 +145,7 @@ override fun onCreate() {
 |----------|------------|
 | Android  | ✓ (PdfBox-Android) |
 | iOS      | ✓ (PDFKit, iOS 11+) |
-| JVM      | Not yet supported |
+| JVM      | ✓ (Apache PDFBox) |
 
 ## License
 
