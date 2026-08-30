@@ -2,6 +2,7 @@ package io.github.sporadiclemon.statementparser
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -72,5 +73,97 @@ class StatementParserTest {
     @Test
     fun `parsePdf returns failure for empty bytes`() {
         assertTrue(parser.parsePdf(ByteArray(0)).isFailure)
+    }
+
+    // --- parseDetailed / parsePdfDetailed: the richer result type ---
+
+    @Test
+    fun `parseDetailed reports Success when transactions were found`() {
+        val csv = "Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category\n15/01/2024,Tesco,,FASTER_PAYMENT,-4.50,295.50,GROCERIES"
+        val result = parser.parseDetailed(csv, StatementFormat.CSV)
+        val success = assertIs<ParsedStatementResult.Success>(result)
+        assertEquals(1, success.statement.transactions.size)
+    }
+
+    @Test
+    fun `parseDetailed reports NoTransactionsFound for a CSV that matches a bank but parses nothing`() {
+        // Every row's date is unparseable, so the bank is detected correctly but zero
+        // transactions come out - exactly the shape that used to be indistinguishable from a
+        // genuinely empty statement under the plain Result-returning API.
+        val csv = "Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category\nnot-a-date,Tesco,,FASTER_PAYMENT,-4.50,295.50,GROCERIES"
+        val result = parser.parseDetailed(csv, StatementFormat.CSV)
+        val empty = assertIs<ParsedStatementResult.NoTransactionsFound>(result)
+        assertEquals(Bank.STARLING, empty.statement.detectedBank)
+        assertTrue(empty.statement.transactions.isEmpty())
+    }
+
+    @Test
+    fun `parseDetailed reports NoTransactionsFound for an OFX file with no transaction blocks`() {
+        val ofx = "<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>"
+        val result = parser.parseDetailed(ofx, StatementFormat.OFX)
+        assertIs<ParsedStatementResult.NoTransactionsFound>(result)
+    }
+
+    @Test
+    fun `parseDetailed refuses to guess between two CSV bank profiles that both match`() {
+        // HSBC's signature is {Description, Amount, Balance} and Santander's is {Date,
+        // Description, Amount} - both are common enough column names that a header row
+        // containing all four satisfies both signatures at once. Silently picking either would
+        // mean parsing with a fixed column mapping that might not be this file's actual layout.
+        val csv = "Date,Description,Amount,Balance\n15/01/2024,Coffee,-3.50,100.00"
+        assertEquals(2, parser.detectBankCandidates(listOf("Date", "Description", "Amount", "Balance")).size)
+
+        val result = parser.parseDetailed(csv, StatementFormat.CSV)
+        val failure = assertIs<ParsedStatementResult.Failure>(result)
+        val error = assertIs<StatementParseError.AmbiguousCsvBank>(failure.error)
+        assertEquals(setOf(Bank.HSBC, Bank.SANTANDER), error.candidates.toSet())
+    }
+
+    @Test
+    fun `legacy parse also fails on an ambiguous CSV bank match, not just parseDetailed`() {
+        // This is a deliberate behaviour change: previously detectBank silently picked the first
+        // matching profile and parsed with its (possibly wrong) column positions. Failing loudly
+        // is worth a previously-succeeding call now failing, since the alternative is parsing
+        // with a mapping that may not match the file at all.
+        val csv = "Date,Description,Amount,Balance\n15/01/2024,Coffee,-3.50,100.00"
+        val result = parser.parse(csv, StatementFormat.CSV)
+        assertTrue(result.isFailure)
+        assertIs<StatementParseError.AmbiguousCsvBank>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `detectBank returns null rather than guessing when multiple profiles match`() {
+        assertNull(parser.detectBank(listOf("Date", "Description", "Amount", "Balance")))
+    }
+
+    @Test
+    fun `parseDetailed on PDF format returns a specific, named error`() {
+        val result = parser.parseDetailed("irrelevant", StatementFormat.PDF)
+        val failure = assertIs<ParsedStatementResult.Failure>(result)
+        assertIs<StatementParseError.WrongParseFunctionForPdf>(failure.error)
+    }
+
+    @Test
+    fun `parsePdfDetailed reports a structured error for empty bytes`() {
+        val result = parser.parsePdfDetailed(ByteArray(0))
+        val failure = assertIs<ParsedStatementResult.Failure>(result)
+        assertIs<StatementParseError.EmptyInput>(failure.error)
+    }
+
+    @Test
+    fun `parsePdfDetailed reports UnreadablePdf for bytes that are not a PDF at all`() {
+        val result = parser.parsePdfDetailed("not a pdf".encodeToByteArray())
+        val failure = assertIs<ParsedStatementResult.Failure>(result)
+        assertIs<StatementParseError.UnreadablePdf>(failure.error)
+    }
+
+    @Test
+    fun `toResult on parseDetailed matches what the legacy parse method returns`() {
+        // The two entry points must agree: parse() is defined in terms of parseDetailed().
+        val csv = "Date,Merchant,Total\n15/01/2024,Coffee,-3.50"
+        val detailed = parser.parseDetailed(csv, StatementFormat.CSV)
+        val legacy = parser.parse(csv, StatementFormat.CSV)
+        assertEquals(legacy.isSuccess, detailed.toResult().isSuccess)
+        assertEquals(legacy.getOrNull(), detailed.toResult().getOrNull())
     }
 }

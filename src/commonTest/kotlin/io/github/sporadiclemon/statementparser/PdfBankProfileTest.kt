@@ -42,9 +42,9 @@ class PdfBankProfileTest {
 
     @Test
     fun `all profiles are in the all list`() {
-        assertEquals(5, PdfBankProfiles.all.size)
+        assertEquals(6, PdfBankProfiles.all.size)
         assertEquals(
-            listOf(Bank.NATWEST, Bank.MONZO, Bank.HSBC, Bank.HSBC, Bank.STARLING),
+            listOf(Bank.NATWEST, Bank.MONZO, Bank.HSBC, Bank.HSBC, Bank.STARLING, Bank.AMEX),
             PdfBankProfiles.all.map { it.bank },
         )
     }

@@ -2,9 +2,31 @@ package io.github.sporadiclemon.statementparser
 
 import kotlinx.datetime.LocalDate
 
+/**
+ * A run of digits grouped in threes by commas, with an optional sign and decimal part -
+ * "1,234.56" or "-12,345,678". Used to decide whether a comma in an amount cell is safe to strip
+ * as a thousands separator: only a string with this exact shape gets its commas removed, so a
+ * file whose locale uses comma as the DECIMAL separator ("12,34") is left alone rather than
+ * having its comma stripped into a hundredfold error ("12,34" -> 1234) with no sign anything
+ * went wrong - it simply fails to parse and the row is dropped, same as any other malformed cell.
+ */
+private val THOUSANDS_GROUPED_AMOUNT = Regex("""^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$""")
+
+private fun parseAmountCell(raw: String): Double? {
+    val trimmed = raw.trim()
+    val cleaned = if (THOUSANDS_GROUPED_AMOUNT.matches(trimmed)) trimmed.replace(",", "") else trimmed
+    return cleaned.toDoubleOrNull()
+}
+
+/** Windows/Excel CSV exports commonly start with a UTF-8 BOM; left in place it glues itself onto
+ *  the first header cell ("\uFEFFDate" instead of "Date"), which no bank's header signature will
+ *  ever match. */
+private fun String.stripBom(): String =
+    if (isNotEmpty() && this[0] == '\uFEFF') substring(1) else this
+
 class CsvParser {
     fun parseHeaders(content: String): List<String> {
-        val first = content.lineSequence().firstOrNull { it.isNotBlank() } ?: return emptyList()
+        val first = content.stripBom().lineSequence().firstOrNull { it.isNotBlank() } ?: return emptyList()
         return parseCsvRow(first)
     }
 
@@ -15,7 +37,7 @@ class CsvParser {
         runCatching {
             // Single pass: filtering and dropping the header through the collection operators
             // would copy the whole line list twice more on a statement of any size.
-            val lines = content.lines()
+            val lines = content.stripBom().lines()
             val transactions = ArrayList<ParsedTransaction>(lines.size)
             var headerSeen = false
             for (line in lines) {
@@ -47,19 +69,12 @@ class CsvParser {
     ): Double? =
         when {
             mapping.amountIndex != null -> {
-                cols
-                    .getOrNull(mapping.amountIndex)
-                    ?.trim()
-                    ?.replace(",", "")
-                    ?.toDoubleOrNull()
+                cols.getOrNull(mapping.amountIndex)?.let(::parseAmountCell)
             }
 
             mapping.amountInIndex != null && mapping.amountOutIndex != null -> {
-                val inStr = cols.getOrNull(mapping.amountInIndex)?.trim()?.replace(",", "")
-                val outStr = cols.getOrNull(mapping.amountOutIndex)?.trim()?.replace(",", "")
-
-                val inAmt = inStr?.toDoubleOrNull() ?: 0.0
-                val outAmt = outStr?.toDoubleOrNull() ?: 0.0
+                val inAmt = cols.getOrNull(mapping.amountInIndex)?.let(::parseAmountCell) ?: 0.0
+                val outAmt = cols.getOrNull(mapping.amountOutIndex)?.let(::parseAmountCell) ?: 0.0
 
                 when {
                     inAmt > 0.0 -> inAmt

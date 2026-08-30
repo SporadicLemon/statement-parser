@@ -75,7 +75,11 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
                 if (row.description.isNotBlank()) pendingDescriptions.add(row.description)
 
                 if (hasAmount) {
-                    val amount = resolveAmount(row, profile.creditMarkerSuffix)
+                    val amount = if (profile.creditMarkerOnOwnLine && profile.creditMarkerSuffix != null) {
+                        resolveAmountWithMarkerOnNextRow(row, rows.getOrNull(rowIndex + 1), profile.creditMarkerSuffix)
+                    } else {
+                        resolveAmount(row, profile.creditMarkerSuffix)
+                    }
                     val balance = row.balance?.clean()?.toDoubleOrNull()
                     if (amount != null) {
                         val tx = ParsedTransaction(
@@ -166,6 +170,22 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
         return transactions
     }
 
+    /**
+     * Resolves a bare AMOUNT cell whose credit marker, when present, is the next table row
+     * rather than a suffix on this one (see [PdfBankProfile.creditMarkerOnOwnLine]). The marker
+     * row carries nothing else - no date, no amount of its own - so it is never mistaken for the
+     * start of a transaction: the caller's own pendingDate is already null by the time the main
+     * loop reaches it, so it passes over harmlessly once its sign has been read here.
+     */
+    private fun resolveAmountWithMarkerOnNextRow(row: RawTableRow, next: RawTableRow?, creditMarker: String): Double? {
+        val magnitude = row.amount?.clean()?.toDoubleOrNull() ?: return null
+        val isMarked = next != null &&
+            next.date == null &&
+            next.amountIn == null && next.amountOut == null && next.amount == null &&
+            next.description.trim().equals(creditMarker, ignoreCase = true)
+        return if (isMarked) magnitude else -magnitude
+    }
+
     private fun resolveAmount(row: RawTableRow, creditMarker: String?): Double? = when {
         row.amountIn  != null -> row.amountIn.clean().toDoubleOrNull()
         row.amountOut != null -> row.amountOut.clean().toDoubleOrNull()?.let { -it }
@@ -190,13 +210,15 @@ class PdfTransactionParser(private val logger: ((String) -> Unit)? = null) {
     }
 
     // Strips thousands separators and the currency symbol in one pass, avoiding the
-    // intermediate strings a trim + two replaces would allocate per cell.
+    // intermediate strings a trim + two replaces would allocate per cell. All three symbols the
+    // amount-cell pattern in TableRowAssembler accepts must be handled here too - stripping only
+    // "£" would classify a "$"/"€" cell as a numeric amount but then fail to parse its value.
     private fun String.clean(): String {
         var needsStrip = false
-        for (c in this) if (c == ',' || c == '£') { needsStrip = true; break }
+        for (c in this) if (c == ',' || c == '£' || c == '$' || c == '€') { needsStrip = true; break }
         if (!needsStrip) return trim()
         val sb = StringBuilder(length)
-        for (c in this) if (c != ',' && c != '£') sb.append(c)
+        for (c in this) if (c != ',' && c != '£' && c != '$' && c != '€') sb.append(c)
         return sb.toString().trim()
     }
 }

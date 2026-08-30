@@ -22,4 +22,6 @@ enum class Bank(val displayName: String) {
     SANTANDER("Santander"),
     /** Halifax Bank. */
     HALIFAX("Halifax"),
+    /** American Express. */
+    AMEX("American Express"),
 }

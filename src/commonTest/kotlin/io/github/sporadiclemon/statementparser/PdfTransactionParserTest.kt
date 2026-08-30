@@ -68,4 +68,23 @@ class PdfTransactionParserTest {
         assertEquals(1, txns.size)
         assertEquals("Direct Debit EE LIMITED", txns[0].description)
     }
+
+    // TableRowAssembler's numeric-cell pattern classifies "$"/"€" figures as amounts alongside
+    // "£", but clean() only stripped "£" - a fragment correctly classified as an amount would
+    // then fail to parse its own value and the transaction would be silently dropped.
+    @Test
+    fun `resolves amounts carrying a dollar or euro sign`() {
+        // The description must start with a recognised prefix (or the row must carry its own
+        // date) for parseDateFirst to open a transaction at all - unrelated to the currency-sign
+        // handling under test here.
+        val dollarRow = RawTableRow(null, "Direct Debit US SUBSCRIPTION", null, "$12.34", null, null, 100f)
+        val dollarTxns = parser.parse(listOf(dollarRow), profile, statementYear = 2026, initialDate = LocalDate(2026, 4, 7))
+        assertEquals(1, dollarTxns.size)
+        assertEquals(-12.34, dollarTxns[0].amount, 0.001)
+
+        val euroRow = RawTableRow(null, "Automated Credit EU REFUND", "€45.00", null, null, null, 100f)
+        val euroTxns = parser.parse(listOf(euroRow), profile, statementYear = 2026, initialDate = LocalDate(2026, 4, 7))
+        assertEquals(1, euroTxns.size)
+        assertEquals(45.00, euroTxns[0].amount, 0.001)
+    }
 }

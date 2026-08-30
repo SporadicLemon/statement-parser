@@ -130,4 +130,38 @@ class CsvParserTest {
         val result = parser.parse("Date,Amount,Description", mapping).getOrThrow()
         assertTrue(result.isEmpty())
     }
+
+    @Test
+    fun `handles amounts with multiple thousand groups`() {
+        val mapping = ColumnMapping(dateIndex=0, dateFormat="dd/MM/yyyy", amountIndex=1, amountInIndex=null, amountOutIndex=null, descriptionIndex=2)
+        val csv = "Date,Amount,Desc\n15/01/2024,\"12,345,678.90\",Bonus"
+        val result = parser.parse(csv, mapping).getOrThrow()
+        assertEquals(12345678.90, result[0].amount)
+    }
+
+    @Test
+    fun `a comma used as a decimal separator is not corrupted into a thousandfold value`() {
+        // "12,34" is not shaped like a thousands-grouped figure (a group of two digits, not
+        // three), so it must not have its comma blindly stripped into "1234" - that would be a
+        // hundredfold error with no sign anything went wrong. It should simply fail to parse.
+        val mapping = ColumnMapping(dateIndex=0, dateFormat="dd/MM/yyyy", amountIndex=1, amountInIndex=null, amountOutIndex=null, descriptionIndex=2)
+        val csv = "Date,Amount,Desc\n15/01/2024,\"12,34\",Coffee"
+        val result = parser.parse(csv, mapping).getOrThrow()
+        assertTrue(result.isEmpty(), "a comma-decimal figure should be dropped, not silently misparsed")
+    }
+
+    @Test
+    fun `strips a leading UTF-8 BOM before reading headers`() {
+        val csv = "﻿Date,Amount,Description\n15/01/2024,-3.50,Coffee"
+        assertEquals(listOf("Date", "Amount", "Description"), parser.parseHeaders(csv))
+    }
+
+    @Test
+    fun `strips a leading UTF-8 BOM before parsing rows`() {
+        val mapping = ColumnMapping(dateIndex=0, dateFormat="dd/MM/yyyy", amountIndex=1, amountInIndex=null, amountOutIndex=null, descriptionIndex=2)
+        val csv = "﻿Date,Amount,Description\n15/01/2024,-3.50,Coffee"
+        val result = parser.parse(csv, mapping).getOrThrow()
+        assertEquals(1, result.size)
+        assertEquals(-3.50, result[0].amount)
+    }
 }

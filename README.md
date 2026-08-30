@@ -72,12 +72,13 @@ result.getOrThrow().transactions.forEach {
 
 ### Supported PDF Banks
 
-| Bank     | Detected by (first page text)                  |
-|----------|------------------------------------------------|
-| NatWest  | "NatWest", "National Westminster"              |
-| Monzo    | "Monzo"                                        |
-| HSBC     | "HSBC"                                         |
-| Starling | "www.starlingbank.com", "Starling Bank Limited" |
+| Bank             | Detected by (first page text)                  |
+|------------------|------------------------------------------------|
+| NatWest          | "NatWest", "National Westminster"              |
+| Monzo            | "Monzo"                                        |
+| HSBC             | "HSBC" (current account), "Visa Card statement" (credit card) |
+| Starling         | "www.starlingbank.com", "Starling Bank Limited" |
+| American Express | "American Express"                             |
 
 Starling is matched on its page furniture rather than a bare "Starling", because the
 word turns up inside payee names on other banks' statements.

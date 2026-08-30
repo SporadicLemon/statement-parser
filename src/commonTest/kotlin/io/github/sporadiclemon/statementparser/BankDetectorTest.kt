@@ -54,4 +54,33 @@ class BankDetectorTest {
         val fragments = listOf(TextFragment("natwest", x = 0f, y = 0f, page = 0))
         assertEquals(Bank.NATWEST, detector.detect(fragments)?.bank)
     }
+
+    /**
+     * Every registered profile's own detection keyword, and nothing else, must resolve to that
+     * exact profile - not merely the same [Bank] (HSBC has two profiles, current account and
+     * credit card, sharing one Bank) and not a different, earlier-in-the-list profile whose
+     * keyword happens to be a substring match against this one's page.
+     *
+     * This is the general form of a guard that was previously hand-written once, for one pair
+     * (HSBC_CREDIT_CARD before HSBC - see [HsbcCreditCardTest]). Written generally, it catches
+     * the same category of mistake for any future profile without needing a bespoke test for
+     * every new pair.
+     */
+    @Test
+    fun `no profile's keyword resolves to a different profile`() {
+        for (profile in PdfBankProfiles.all) {
+            for (keyword in profile.detectionKeywords) {
+                val page = keyword.split(' ').mapIndexed { i, word ->
+                    TextFragment(word, x = i * 60f, y = 40f, page = 0)
+                }
+                val detected = detector.detect(page)
+                assertEquals(
+                    profile,
+                    detected,
+                    "keyword \"$keyword\" (belongs to ${profile.bank.displayName}) resolved to " +
+                        "${detected?.bank?.displayName ?: "no profile"} instead",
+                )
+            }
+        }
+    }
 }

@@ -18,6 +18,14 @@ data class PdfBankProfile(
      * without it parses negative. Null (the default) leaves the figure's own sign alone.
      */
     val creditMarkerSuffix: String? = null,
+    /**
+     * When true, [creditMarkerSuffix] is looked for on the row immediately below an amount cell
+     * rather than appended to the cell itself. American Express prints "CR" as a line of its own
+     * under the figure it marks: the amount and its marker are 12pt apart, further than the
+     * grouping tolerance that keeps a row's fragments together, so they surface as two separate
+     * table rows and the marker cannot be a suffix on the same cell.
+     */
+    val creditMarkerOnOwnLine: Boolean = false,
 )
 
 object PdfBankProfiles {
@@ -122,7 +130,40 @@ object PdfBankProfiles {
         creditMarkerSuffix = "CR",
     )
 
+    /**
+     * American Express credit card. The heading has two date columns like [HSBC_CREDIT_CARD] -
+     * "Transaction Date" and "Process Date", both printed "Jul 27" - so DATE anchors on the
+     * first (leftmost) "Date" match, which is the transaction date; the process date folds into
+     * the front of the description, same trade-off as HSBC's second date column.
+     *
+     * The credit marker is the biggest structural difference from HSBC's card: "CR" is not
+     * suffixed onto the amount cell, it is printed on its own line directly beneath it - far
+     * enough below (12pt) to land in a separate table row rather than the same one. That is what
+     * [PdfBankProfile.creditMarkerOnOwnLine] exists for.
+     *
+     * There is also a "Foreign Spend" column between Description and Amount for transactions
+     * made in another currency, which this profile does not map to a role. Its values fall
+     * inside the Amount band (nothing carves out a separate region for them), but they are
+     * printed without a leading digit before the decimal point ("£0.20" appears as ".20"), which
+     * the numeric-cell pattern rejects, so they are reclassified as overflow description text
+     * rather than corrupting the real amount - confirmed against a real foreign-currency line on
+     * the statement used to build this profile.
+     */
+    val AMEX = PdfBankProfile(
+        bank = Bank.AMEX,
+        detectionKeywords = listOf("American Express"),
+        columnHeaders = mapOf(
+            ColumnRole.DATE        to "Date",
+            ColumnRole.DESCRIPTION to "Transaction Details",
+            ColumnRole.AMOUNT      to "Amount",
+        ),
+        dateFormat = "MMM d",
+        dateIncludesYear = false,
+        creditMarkerSuffix = "CR",
+        creditMarkerOnOwnLine = true,
+    )
+
     // HSBC_CREDIT_CARD comes before HSBC: detection takes the first profile whose keyword
     // is on page 1, and a card statement says "HSBC" too.
-    val all: List<PdfBankProfile> = listOf(NATWEST, MONZO, HSBC_CREDIT_CARD, HSBC, STARLING)
+    val all: List<PdfBankProfile> = listOf(NATWEST, MONZO, HSBC_CREDIT_CARD, HSBC, STARLING, AMEX)
 }
