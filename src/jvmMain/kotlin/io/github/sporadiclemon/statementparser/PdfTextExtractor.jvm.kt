@@ -29,12 +29,27 @@ actual class PdfTextExtractor actual constructor() {
         }
         return try {
             val stripper = JvmCoordinateStripper()
-            stripper.getText(doc)
+            // writeText(..) instead of getText(..): the coordinates come from the writeString
+            // callback, so the assembled page text would only be a full second copy of the
+            // document held in memory.
+            stripper.writeText(doc, DiscardingWriter())
             stripper.fragments
         } finally {
             doc.close()
         }
     }
+}
+
+/**
+ * Sink for PDFTextStripper output that is not needed; only the coordinates matter.
+ *
+ * A new instance per extraction: java.io.Writer synchronises on itself, so sharing one would
+ * serialise concurrent extractions on every write PDFBox makes.
+ */
+private class DiscardingWriter : java.io.Writer() {
+    override fun write(cbuf: CharArray, off: Int, len: Int) = Unit
+    override fun flush() = Unit
+    override fun close() = Unit
 }
 
 private class JvmCoordinateStripper : PDFTextStripper() {
