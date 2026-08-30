@@ -27,9 +27,13 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.kotlinx.datetime)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.datastore.preferences.core)
+            // These three appear in this library's own public signatures — LocalDate on
+            // ParsedTransaction, and DataStore/Flow on ColumnMappingStore — so they must be
+            // `api`. Declared as `implementation` they are omitted from the published
+            // compile-time metadata and consumers cannot resolve the types they are handed.
+            api(libs.kotlinx.datetime)
+            api(libs.kotlinx.coroutines.core)
+            api(libs.datastore.preferences.core)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
