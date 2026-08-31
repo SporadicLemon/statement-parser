@@ -77,7 +77,9 @@ mavenPublishing {
     ) {
         signAllPublications()
     }
-    // Removed coordinates() call to avoid "final and cannot be changed" error
+    // Uploads and validates but does not auto-release; the deployment sits pending in the
+    // Central Portal until reviewed and published there (or via publishAndReleaseToMavenCentral).
+    publishToMavenCentral()
     pom {
         name.set("statement-parser")
         description.set("Kotlin Multiplatform library for parsing CSV and OFX/QFX bank statements on-device.")

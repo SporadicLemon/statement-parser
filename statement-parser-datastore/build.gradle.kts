@@ -62,6 +62,9 @@ mavenPublishing {
     ) {
         signAllPublications()
     }
+    // Uploads and validates but does not auto-release; the deployment sits pending in the
+    // Central Portal until reviewed and published there (or via publishAndReleaseToMavenCentral).
+    publishToMavenCentral()
     pom {
         name.set("statement-parser-datastore")
         description.set("Optional DataStore-backed persistence for statement-parser's ColumnMapping.")
