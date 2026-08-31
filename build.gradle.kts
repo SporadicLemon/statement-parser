@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.mavenPublish)
     alias(libs.plugins.androidApplication) apply false
     alias(libs.plugins.composeMultiplatform) apply false
@@ -18,9 +18,21 @@ kotlin {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    // com.android.kotlin.multiplatform.library folds what used to be the separate top-level
+    // android {} extension into this block. Tests are disabled by default under this plugin -
+    // withHostTest/withDeviceTest are the explicit opt-in that used to be automatic.
+    android {
+        namespace = "io.github.sporadiclemon.statementparser"
+        compileSdk = 37
+        minSdk = 28
+
+        // jvmToolchain(17) above already governs every target's bytecode level; the guide's
+        // per-target compilerOptions.configure{} block did not resolve against this AGP/KGP
+        // version's actual API surface and is redundant with the toolchain setting anyway.
+
+        withHostTest {}
+        withDeviceTest {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }
     }
     iosArm64()
@@ -48,22 +60,15 @@ kotlin {
         jvmMain.dependencies {
             implementation(libs.pdfbox)
         }
-        getByName("androidInstrumentedTest") {
+        // Renamed from androidInstrumentedTest: this plugin's source set naming for the
+        // device-test (instrumented) side is androidDeviceTest, not the older KMP-hierarchy name.
+        getByName("androidDeviceTest") {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation(libs.androidx.test.runner)
                 implementation(libs.androidx.test.ext.junit)
             }
         }
-    }
-}
-
-android {
-    namespace = "io.github.sporadiclemon.statementparser"
-    compileSdk = 37
-    defaultConfig {
-        minSdk = 28
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 }
 

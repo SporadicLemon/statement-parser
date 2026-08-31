@@ -5,7 +5,7 @@
 // never call.
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.mavenPublish)
 }
 
@@ -19,10 +19,15 @@ kotlin {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        }
+    // com.android.kotlin.multiplatform.library folds what used to be the separate top-level
+    // android {} extension into this block. No instrumented tests here, so only withHostTest is
+    // needed to keep commonTest running as this module's Android unit tests.
+    android {
+        namespace = "io.github.sporadiclemon.statementparser.datastore"
+        compileSdk = 37
+        minSdk = 28
+
+        withHostTest {}
     }
     iosArm64()
     iosSimulatorArm64()
@@ -45,14 +50,6 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
-    }
-}
-
-android {
-    namespace = "io.github.sporadiclemon.statementparser.datastore"
-    compileSdk = 37
-    defaultConfig {
-        minSdk = 28
     }
 }
 
