@@ -61,6 +61,14 @@ dependencies {
 }
 ```
 
+That one coordinate is all you need, on any target (JVM, Android, or iOS) - if you browse the
+repository directly you'll also see `statement-parser-jvm`, `statement-parser-android`,
+`statement-parser-iosarm64`, and similar. Those aren't separate releases to choose between; a
+JVM jar, an Android AAR, and a Kotlin/Native klib are different binary formats with no single
+file that could be all of them at once, so Gradle Module Metadata publishes each as its own
+artifact and silently resolves `statement-parser` to whichever one matches your target. This is
+how every Kotlin Multiplatform library is published, not something specific to this one.
+
 ### Optional: persisting a custom ColumnMapping
 
 If you let a user confirm a `ColumnMapping` for a CSV export from an unrecognised bank and
