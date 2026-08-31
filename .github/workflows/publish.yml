@@ -34,3 +34,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
+      # Uploads and validates but does not auto-release - same as running this locally, the
+      # deployment sits pending in the Central Portal for manual review before going live.
+      # ORG_GRADLE_PROJECT_<name> is Gradle's own convention for exposing an environment variable
+      # as the project property <name>, which is what build.gradle.kts's signing gate and the
+      # vanniktech plugin's mavenCentralUsername/Password both read - no code change needed for
+      # this to work, only these secrets existing in the repo.
+      #
+      # SIGNING_IN_MEMORY_KEY must be the raw, unescaped multi-line key exported by
+      # `gpg --armor --export-secret-keys` - unlike gradle.properties, a GitHub secret has no
+      # single-line restriction, so the \n-escaping trick used there does not apply here.
+      - name: Publish to Maven Central
+        run: ./gradlew publishToMavenCentral :statement-parser-datastore:publishToMavenCentral
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.SIGNING_IN_MEMORY_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
