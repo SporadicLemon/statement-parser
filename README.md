@@ -57,7 +57,7 @@ Then add the dependency:
 
 ```kotlin
 dependencies {
-    implementation("io.github.sporadiclemon:statement-parser:0.0.1")
+    implementation("io.github.sporadiclemon:statement-parser:0.1.0")
 }
 ```
 
@@ -68,8 +68,8 @@ want to remember it, add the separate `statement-parser-datastore` module:
 
 ```kotlin
 dependencies {
-    implementation("io.github.sporadiclemon:statement-parser:0.0.1")
-    implementation("io.github.sporadiclemon:statement-parser-datastore:0.0.1")
+    implementation("io.github.sporadiclemon:statement-parser:0.1.0")
+    implementation("io.github.sporadiclemon:statement-parser-datastore:0.1.0")
 }
 ```
 
