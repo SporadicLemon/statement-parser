@@ -1,7 +1,7 @@
 [versions]
-statementParser = "0.1.1"
+statementParser = "0.1.0"
 agp = "9.3.2"
-kotlin = "2.3.21"
+kotlin = "2.4.10"
 compose-multiplatform = "1.12.0"
 kotlinxDatetime = "0.8.0"
 kotlinxCoroutines = "1.11.0"
