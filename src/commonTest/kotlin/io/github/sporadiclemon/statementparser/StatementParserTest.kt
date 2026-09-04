@@ -41,6 +41,22 @@ class StatementParserTest {
     }
 
     @Test
+    fun `detectBank resolves Monzo's real export despite incidentally satisfying Santander's generic signature`() {
+        // Monzo's actual CSV export has many more columns than its 5-column signature needs -
+        // three of the extras ("Date", "Description", "Amount") happen to be exactly Santander's
+        // whole (much more generic) signature. Monzo's signature is still the more specific match
+        // (5 columns vs Santander's 3), so it should win outright rather than being reported as
+        // ambiguous - unlike the genuine HSBC/Santander tie below, where both signatures are the
+        // same size and neither is more specific than the other.
+        val headers = listOf(
+            "Transaction ID", "Date", "Time", "Type", "Name", "Emoji", "Category", "Amount",
+            "Currency", "Local amount", "Local currency", "Notes and #tags", "Address", "Receipt",
+            "Description", "Category split", "Money Out", "Money In",
+        )
+        assertEquals(Bank.MONZO, parser.detectBank(headers)?.bank)
+    }
+
+    @Test
     fun `parse CSV auto-detects Starling`() {
         val csv = "Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category\n" +
                   "15/01/2024,Tesco,,FASTER_PAYMENT,-4.50,295.50,GROCERIES"

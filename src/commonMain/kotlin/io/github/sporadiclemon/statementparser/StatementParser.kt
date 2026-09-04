@@ -48,17 +48,24 @@ class StatementParser(private val debugLogger: ((String) -> Unit)? = null) {
         detectBankCandidates(headers).singleOrNull()
 
     /**
-     * Every CSV bank profile whose header signature this header set satisfies. Ordinarily this
-     * has at most one entry; more than one means the file's columns happen to match several
-     * banks' signatures (a handful of the built-in ones, like HSBC's and Santander's, are just
-     * common column names), and picking one over the others would mean guessing which bank's
-     * fixed column positions actually apply to this file.
+     * Every CSV bank profile whose header signature this header set satisfies, narrowed to the
+     * most specific match(es). A file's real column count is usually well beyond any one
+     * signature's size, so it can easily satisfy more than one profile's signature by coincidence
+     * (a handful of the built-in ones, like HSBC's and Santander's, are just common column names).
+     * A profile requiring more columns is exponentially less likely to match by coincidence than
+     * one requiring few, so among the profiles that match, only the one(s) with the largest
+     * signature are kept - a smaller matching signature contributed no distinguishing information
+     * once a larger one is already satisfied. This still refuses to guess when the largest
+     * matching signatures are the same size (e.g. HSBC's and Santander's, both 3 columns): picking
+     * one over the other then would mean guessing which bank's fixed column positions apply.
      */
     fun detectBankCandidates(headers: List<String>): List<CsvBankProfile> {
         val headerSet = headers.mapTo(HashSet(headers.size)) { it.trim().lowercase() }
-        return CsvBankProfiles.all.filter { profile ->
+        val matches = CsvBankProfiles.all.filter { profile ->
             CsvBankProfiles.lowercaseSignature(profile).all { sig -> sig in headerSet }
         }
+        val mostSpecificSize = matches.maxOfOrNull { it.headerSignature.size } ?: return matches
+        return matches.filter { it.headerSignature.size == mostSpecificSize }
     }
 
     /**
