@@ -1,5 +1,5 @@
 [versions]
-statementParser = "0.1.1"
+statementParser = "0.1.2"
 agp = "9.3.2"
 kotlin = "2.3.21"
 compose-multiplatform = "1.12.0"
